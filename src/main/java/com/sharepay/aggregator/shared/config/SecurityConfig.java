@@ -1,5 +1,6 @@
 package com.sharepay.aggregator.shared.config;
 
+import com.sharepay.aggregator.shared.security.RateLimitingFilter;
 import com.sharepay.aggregator.shared.security.apikey.ApiKeyAuthenticationFilter;
 import com.sharepay.aggregator.shared.security.jwt.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +28,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ApiKeyAuthenticationFilter apiKeyAuthenticationFilter;
+    private final RateLimitingFilter rateLimitingFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -83,7 +85,8 @@ public class SecurityConfig {
                             );
                         })
                 )
-                // Ajout des filtres d'authentification personnalisés
+                // Ajout des filtres dans l'ordre : rate limiting -> api key -> jwt
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(apiKeyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

@@ -479,7 +479,7 @@ public class InternalDocsAuthFilter implements Filter {
                         defaultModelsExpandDepth: 1,
                         displayRequestDuration: true,
                         filter: true,
-                        tryItOutEnabled: true,
+                        tryItOutEnabled: false,
                         persistAuthorization: true
                     });
                 };
