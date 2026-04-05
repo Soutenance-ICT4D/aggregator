@@ -6,9 +6,12 @@ import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.tags.Tag;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,6 +47,17 @@ public class SwaggerConfig {
                             .description("API pour le portail Frontend Sharepay.")
                             .version("1.0.0")
                     );
+
+                    // Ordre logique des tags dans l'UI (de haut en bas)
+                    openApi.tags(List.of(
+                            new Tag().name("Authentification Marchand").description("Endpoints d'authentification des marchands"),
+                            new Tag().name("Compte Marchand").description("Endpoints de gestion du compte marchand"),
+                            new Tag().name("Applications").description("Endpoints de gestion des applications marchandes"),
+                            new Tag().name("API Keys").description("Endpoints de gestion des clés API des applications marchandes"),
+                            new Tag().name("Collecte de fonds").description("Endpoints de gestion des collectes de fonds"),
+                            new Tag().name("Administration").description("Endpoints de gestion des utilisateurs et du système"),
+                            new Tag().name("Support").description("Endpoints d'outils de support client")
+                    ));
 
                     // Schéma de sécurité : JWT Bearer
                     openApi.getComponents().addSecuritySchemes("bearerAuth",
@@ -82,6 +96,13 @@ public class SwaggerConfig {
                             .description("API d'intégration B2B et Webhooks pour les partenaires Sharepay.")
                             .version("1.0.0")
                     );
+
+                    // Ordre logique des tags dans l'UI
+                    openApi.tags(List.of(
+                            new Tag().name("Paiements").description("Initiation et suivi des paiements"),
+                            new Tag().name("Retraits").description("Retraits et remboursements"),
+                            new Tag().name("Webhooks").description("Gestion des webhooks et événements")
+                    ));
 
                     // Schéma de sécurité : API Key
                     openApi.getComponents().addSecuritySchemes("apiKeyAuth",

@@ -1,7 +1,5 @@
 package com.sharepay.aggregator.shared.security;
 
-import com.sharepay.aggregator.shared.constant.AccountStatus;
-import com.sharepay.aggregator.shared.constant.KycLevel;
 import com.sharepay.aggregator.shared.constant.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,6 +16,4 @@ public class AuthentificatedUser {
     private UUID accountId;
     private String email;
     private Role role;
-    private KycLevel kycLevel;
-    private AccountStatus status;
 }

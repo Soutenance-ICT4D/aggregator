@@ -1,5 +1,9 @@
 package com.sharepay.aggregator.shared.security.apikey;
 
+import com.sharepay.aggregator.modules.apps.dto.response.ApiKeyResponse;
+import com.sharepay.aggregator.modules.apps.service.ApiKeyService;
+import com.sharepay.aggregator.shared.constant.ApiKeyEnvironment;
+import com.sharepay.aggregator.shared.exception.BusinessException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +24,7 @@ import java.util.List;
  * Filtre d'authentification par API Key pour les intégrations B2B.
  *
  * Extrait et valide l'API Key depuis le header X-API-KEY.
- * Si la clé est valide, configure le contexte de sécurité Spring Security.
+ * Si la clé est valide et active, configure le contexte de sécurité Spring Security.
  *
  * Format attendu : X-API-KEY: sk_live_... ou sk_test_...
  *
@@ -38,8 +42,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String API_KEY_HEADER = "X-API-KEY";
 
-    // TODO: Injecter ApiKeyService pour la validation en base de données
-    // private final ApiKeyService apiKeyService;
+    private final ApiKeyService apiKeyService;
 
     @Override
     protected void doFilterInternal(
@@ -48,76 +51,48 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // Chemins publics qui ne nécessitent pas d'API Key
         String path = request.getRequestURI();
-        if (isPublicPath(path)) {
+
+        if (isPublicPath(path) || isJwtPath(path)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Chemins qui utilisent JWT au lieu d'API Key
-        if (isJwtPath(path)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        String rawApiKey = request.getHeader(API_KEY_HEADER);
 
-        // Extraction de l'API Key depuis le header
-        String apiKey = request.getHeader(API_KEY_HEADER);
-
-        if (apiKey == null || apiKey.trim().isEmpty()) {
-            // Pas d'API Key → laisser passer (Spring Security refusera l'accès si nécessaire)
+        if (rawApiKey == null || rawApiKey.isBlank()) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            // TODO: Valider l'API Key via ApiKeyService
-            // ApiKeyDetails keyDetails = apiKeyService.validateAndGetDetails(apiKey);
-            // String merchantId = keyDetails.getMerchantId();
-            // boolean isLiveMode = keyDetails.isLiveMode();
+            ApiKeyResponse keyDetails = apiKeyService.validateApiKey(rawApiKey);
+            boolean isLiveMode = keyDetails.getEnvironment() == ApiKeyEnvironment.LIVE;
 
-            // ⚠️ TEMPORAIRE : Simulation de la validation
-            // À REMPLACER par la vraie validation en base de données
-            if (isValidApiKey(apiKey)) {
-                // Simuler les données extraites de la base
-                String merchantId = extractMerchantId(apiKey);
-                boolean isLiveMode = apiKey.startsWith("sk_live_");
+            List<SimpleGrantedAuthority> authorities = List.of(
+                    new SimpleGrantedAuthority("ROLE_API_CLIENT"),
+                    new SimpleGrantedAuthority(isLiveMode ? "ROLE_LIVE_MODE" : "ROLE_TEST_MODE")
+            );
 
-                // Créer les authorities (rôles)
-                List<SimpleGrantedAuthority> authorities = List.of(
-                        new SimpleGrantedAuthority("ROLE_API_CLIENT"),
-                        new SimpleGrantedAuthority(isLiveMode ? "ROLE_LIVE_MODE" : "ROLE_TEST_MODE")
-                );
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                    keyDetails.getId().toString(),
+                    rawApiKey,
+                    authorities
+            );
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                // Créer le token d'authentification Spring Security
-                // Le principal contient l'ID du marchand
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        merchantId,  // Principal (ID du marchand)
-                        apiKey,      // Credentials (API Key pour audit)
-                        authorities  // Authorities (rôles)
-                );
+            log.debug("API Key authentifiée : {} (mode: {})", keyDetails.getKeyPrefix(), isLiveMode ? "live" : "test");
 
-                // Ajouter les détails de la requête
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                // Configurer le contexte de sécurité
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-
-                log.debug("API Key authentification réussie pour le marchand : {} (mode: {})",
-                        merchantId, isLiveMode ? "live" : "test");
-            }
-
+        } catch (BusinessException e) {
+            log.warn("Tentative d'accès avec une clé API invalide : {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Erreur lors de la validation de l'API Key : {}", e.getMessage());
-            // En cas d'erreur, ne pas bloquer la requête, Spring Security refusera l'accès
+            log.error("Erreur inattendue lors de la validation de l'API Key : {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Vérifie si le chemin est public et ne nécessite pas d'API Key.
-     */
     private boolean isPublicPath(String path) {
         return path.startsWith("/api/v1/auth/") ||
                 path.startsWith("/api/v1/public/") ||
@@ -127,51 +102,11 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                 path.equals("/logo_sharepay_svg.svg");
     }
 
-    /**
-     * Vérifie si le chemin utilise l'authentification JWT plutôt qu'API Key.
-     */
     private boolean isJwtPath(String path) {
         return path.startsWith("/api/v1/apps/") ||
                 path.startsWith("/api/v1/payment-links/") ||
                 path.startsWith("/api/v1/merchants/") ||
                 path.startsWith("/api/v1/admin/") ||
                 path.startsWith("/api/v1/support/");
-    }
-
-    /**
-     * Validation temporaire de l'API Key.
-     *
-     * ⚠️ À REMPLACER par une vraie validation via ApiKeyService qui :
-     * - Vérifie que la clé existe en base de données
-     * - Vérifie que la clé est active (non révoquée)
-     * - Récupère les infos du marchand associé
-     * - Vérifie les permissions et limites de la clé
-     */
-    private boolean isValidApiKey(String apiKey) {
-        // TODO: Implémenter la vraie validation
-        // return apiKeyService.isValidAndActive(apiKey);
-
-        // Validation basique du format
-        if (apiKey == null || apiKey.length() < 35) {
-            return false;
-        }
-
-        // Vérifier le préfixe
-        return apiKey.startsWith("sk_live_") || apiKey.startsWith("sk_test_");
-    }
-
-    /**
-     * Extrait l'ID du marchand depuis l'API Key.
-     *
-     * ⚠️ TEMPORAIRE : Simulation
-     * En production, cette info vient de la base de données.
-     */
-    private String extractMerchantId(String apiKey) {
-        // TODO: Récupérer depuis la base de données
-        // ApiKey key = apiKeyService.findByKey(apiKey);
-        // return key.getMerchantId();
-
-        // Temporairement, générer un ID fictif
-        return "merchant_" + Math.abs(apiKey.hashCode());
     }
 }

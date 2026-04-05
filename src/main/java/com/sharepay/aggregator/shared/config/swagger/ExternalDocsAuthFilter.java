@@ -1,11 +1,15 @@
 package com.sharepay.aggregator.shared.config.swagger;
 
+import com.sharepay.aggregator.modules.account.repository.UserRepository;
+import com.sharepay.aggregator.shared.constant.AccountStatus;
 import jakarta.servlet.*;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -14,6 +18,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 // Filtre d'authentification pour l'accès à la documentation Swagger des développeurs externes.
+@Slf4j
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class ExternalDocsAuthFilter implements Filter {
@@ -22,9 +27,13 @@ public class ExternalDocsAuthFilter implements Filter {
     private static final String LOGIN_PATH = "/swagger-ui/devs/sharepay-docs/login";
     private static final String COOKIE_NAME = "sharepay_external_session";
 
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     private final String validSessionToken;
 
-    public ExternalDocsAuthFilter() {
+    public ExternalDocsAuthFilter(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         SecureRandom random = new SecureRandom();
         byte[] tokenBytes = new byte[32];
         random.nextBytes(tokenBytes);
@@ -77,16 +86,20 @@ public class ExternalDocsAuthFilter implements Filter {
         String email = request.getParameter("email");
         String password = request.getParameter("password");
 
-        if (isValidCredentials(email, password)) {
-            Cookie sessionCookie = new Cookie(COOKIE_NAME, validSessionToken);
-            sessionCookie.setPath(EXTERNAL_DOCS_PATH);
-            sessionCookie.setHttpOnly(true);
-            sessionCookie.setSecure(false);
-            sessionCookie.setMaxAge(60 * 60 * 24); // 24 heures
-            response.addCookie(sessionCookie);
-            response.sendRedirect(EXTERNAL_DOCS_PATH);
-        } else {
-            serveLoginPage(response, true);
+        LoginResult result = checkCredentials(email, password);
+
+        switch (result) {
+            case SUCCESS -> {
+                Cookie sessionCookie = new Cookie(COOKIE_NAME, validSessionToken);
+                sessionCookie.setPath(EXTERNAL_DOCS_PATH);
+                sessionCookie.setHttpOnly(true);
+                sessionCookie.setSecure(false);
+                sessionCookie.setMaxAge(60 * 60 * 8); // 8 heures
+                response.addCookie(sessionCookie);
+                response.sendRedirect(EXTERNAL_DOCS_PATH);
+            }
+            case SUSPENDED -> serveLoginPage(response, LoginError.SUSPENDED);
+            default        -> serveLoginPage(response, LoginError.INVALID);
         }
     }
 
@@ -110,22 +123,48 @@ public class ExternalDocsAuthFilter implements Filter {
         return false;
     }
 
-    /**
-     * Validation temporaire des identifiants (Email/Password).
-     * TODO: Injecter AuthService ou AccountService pour validation en base de données.
-     */
-    private boolean isValidCredentials(String email, String password) {
-        if (email == null || password == null) return false;
-        // Bouchon temporaire
-        return email.equals("partner@sharepay.com") && password.equals("password");
+    private enum LoginResult { SUCCESS, SUSPENDED, INVALID }
+    private enum LoginError  { SUSPENDED, INVALID }
+
+    private LoginResult checkCredentials(String email, String password) {
+        if (email == null || password == null) return LoginResult.INVALID;
+
+        return userRepository.findByEmail(email)
+                .filter(user -> user.isEmailVerified()
+                        && user.getStatus() != AccountStatus.DELETED
+                        && passwordEncoder.matches(password, user.getPasswordHash()))
+                .map(user -> user.getStatus() == AccountStatus.SUSPENDED
+                        ? LoginResult.SUSPENDED
+                        : LoginResult.SUCCESS)
+                .orElse(LoginResult.INVALID);
     }
 
-    private void serveLoginPage(HttpServletResponse response, boolean withError)
+    private void serveLoginPage(HttpServletResponse response, LoginError error) throws IOException {
+        serveLoginPage(response, error, false);
+    }
+
+    private void serveLoginPage(HttpServletResponse response, boolean withError) throws IOException {
+        serveLoginPage(response, withError ? LoginError.INVALID : null, false);
+    }
+
+    private void serveLoginPage(HttpServletResponse response, LoginError error, boolean ignored)
             throws IOException {
         response.setContentType("text/html;charset=UTF-8");
-        response.setStatus(withError ? HttpServletResponse.SC_UNAUTHORIZED : HttpServletResponse.SC_OK);
+        response.setStatus(error != null ? HttpServletResponse.SC_UNAUTHORIZED : HttpServletResponse.SC_OK);
 
-        String errorBlock = withError ? """
+        String errorBlock = "";
+        if (error == LoginError.SUSPENDED) {
+            errorBlock = """
+                <div class="error-msg error-suspended">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    Votre compte est suspendu. Veuillez contacter le support Sharepay.
+                </div>
+                """;
+        } else if (error == LoginError.INVALID) {
+            errorBlock = """
                 <div class="error-msg">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
@@ -133,7 +172,8 @@ public class ExternalDocsAuthFilter implements Filter {
                     </svg>
                     Identifiants incorrects. Veuillez réessayer.
                 </div>
-                """ : "";
+                """;
+        }
 
         PrintWriter out = response.getWriter();
         out.println("""
@@ -286,6 +326,11 @@ public class ExternalDocsAuthFilter implements Filter {
                     font-size: 14px;
                     margin-bottom: 24px;
                     animation: shake 0.4s;
+                }
+                .error-suspended {
+                    background: rgba(245,158,11,0.08);
+                    border-color: rgba(245,158,11,0.3);
+                    color: #b45309;
                 }
                 @keyframes shake {
                     0%, 100% { transform: translateX(0); }

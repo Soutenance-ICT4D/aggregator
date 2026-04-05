@@ -256,7 +256,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 4. Générer l'Access Token
-        String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail(), user.getRole(), user.getStatus());
+        String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail(), user.getRole());
 
         // 5. Générer le Refresh Token (Chaine pseudo-aléatoire sécurisée)
         String rawRefreshToken = UUID.randomUUID().toString() + UUID.randomUUID().toString();
@@ -328,7 +328,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Génération de l'Access Token
-        String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail(), user.getRole(), user.getStatus());
+        String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail(), user.getRole());
 
         // Génération du nouveau Refresh Token
         String newRawRefreshToken = UUID.randomUUID().toString() + UUID.randomUUID().toString();

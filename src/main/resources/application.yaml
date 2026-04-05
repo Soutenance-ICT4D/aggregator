@@ -75,6 +75,13 @@ management:
     health:
       show-details: when-authorized
 
+# Configuration Springdoc / Swagger UI
+springdoc:
+  swagger-ui:
+    tags-sorter: order
+    operations-sorter: method
+    default-flat-param-object: true
+
 # Configuration Logging commune (surchargée par profil)
 logging:
   pattern:

@@ -4,7 +4,6 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.proc.SecurityContext;
-import com.sharepay.aggregator.shared.constant.AccountStatus;
 import com.sharepay.aggregator.shared.constant.Role;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,7 +51,7 @@ public class JwtService {
     }
 
     // Génération
-    public String generateAccessToken(UUID accountId, String email, Role role, AccountStatus status) {
+    public String generateAccessToken(UUID accountId, String email, Role role) {
         Instant now    = Instant.now();
         Instant expiry = now.plusMillis(this.accessTokenExpiration);
 
@@ -63,7 +62,6 @@ public class JwtService {
                 .expiresAt(expiry)
                 .claim("email", email)
                 .claim("role", role.name())
-                .claim("status", status.name())
                 .claim("type", "access")
                 .build();
 
@@ -112,7 +110,4 @@ public class JwtService {
         return jwt.getClaimAsString("email");
     }
 
-    public String extractStatus(Jwt jwt) {
-        return jwt.getClaimAsString("status");
-    }
 }

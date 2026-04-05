@@ -19,7 +19,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -111,11 +110,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.equals("/logo_sharepay_svg.svg");
     }
 
-    private void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
+    private void sendErrorResponse(HttpServletResponse response, int status, String code) throws IOException {
         response.setStatus(status);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(
-                "{\"success\":false,\"message\":\"" + message + "\",\"data\":null,\"timestamp\":\"" + LocalDateTime.now() + "\"}"
+            "{\"success\":false,\"code\":\"" + code + "\",\"message\":\"" + code + "\",\"data\":null}"
         );
     }
 }

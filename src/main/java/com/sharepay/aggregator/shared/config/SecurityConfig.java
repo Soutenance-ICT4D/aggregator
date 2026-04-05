@@ -60,11 +60,21 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/public/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
 
+                        // ── Endpoints Merchant (JWT avec rôle MERCHANT requis) ──
+                        .requestMatchers("/api/v1/merchants/**").hasRole("MERCHANT")
+                        .requestMatchers("/api/v1/apps/**").hasRole("MERCHANT")
+                        .requestMatchers("/api/v1/payment-links/**").hasRole("MERCHANT")
+
                         // ── Endpoints Admin (JWT avec rôle ADMIN requis) ──
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                         // ── Endpoints Support (JWT avec rôle SUPPORT requis) ──
                         .requestMatchers("/api/v1/support/**").hasRole("SUPPORT")
+
+                        // ── Endpoints API Key (intégrations B2B) ──
+                        .requestMatchers("/api/v1/integration/**").hasRole("API_CLIENT")
+                        .requestMatchers("/api/v1/payments/**").hasRole("API_CLIENT")
+                        .requestMatchers("/api/v1/payouts/**").hasRole("API_CLIENT")
 
                         // ── Tous les autres endpoints nécessitent une authentification ──
                         .anyRequest().authenticated()
