@@ -4,7 +4,6 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.tags.Tag;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -30,7 +29,7 @@ public class SwaggerConfig {
                         "/api/v1/auth/**",
                         "/api/v1/account/**",
                         "/api/v1/apps/**",
-                        "/api/v1/fund-collection/**",
+                        "/api/v1/fund-collections/**",
                         "/api/v1/payment/**",
                         "/api/v1/payout/**",
                         "/api/v1/admin/**",
@@ -60,6 +59,9 @@ public class SwaggerConfig {
                     ));
 
                     // Schéma de sécurité : JWT Bearer
+                    // Déclaré ici pour activer le bouton "Authorize" dans Swagger UI.
+                    // Chaque controller sécurisé porte @SecurityRequirement(name = "bearerAuth")
+                    // individuellement — les endpoints publics (auth, register…) restent sans cadenas.
                     openApi.getComponents().addSecuritySchemes("bearerAuth",
                             new SecurityScheme()
                                     .name("bearerAuth")
@@ -68,9 +70,6 @@ public class SwaggerConfig {
                                     .bearerFormat("JWT")
                                     .description("JWT Bearer Token obtenu après login")
                     );
-
-                    // Appliquer la sécurité par défaut sur tous les endpoints
-                    openApi.addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
                 })
                 .build();
     }
@@ -105,6 +104,9 @@ public class SwaggerConfig {
                     ));
 
                     // Schéma de sécurité : API Key
+                    // Déclaré ici pour activer le bouton "Authorize" dans Swagger UI.
+                    // Chaque controller sécurisé porte @SecurityRequirement(name = "apiKeyAuth")
+                    // individuellement — les endpoints publics (/health…) restent sans cadenas.
                     openApi.getComponents().addSecuritySchemes("apiKeyAuth",
                             new SecurityScheme()
                                     .name("X-API-KEY")
@@ -115,9 +117,6 @@ public class SwaggerConfig {
                                         Format : `sk_live_...` (production) ou `sk_test_...` (test)
                                         """)
                     );
-
-                    // Appliquer la sécurité par défaut sur tous les endpoints
-                    openApi.addSecurityItem(new SecurityRequirement().addList("apiKeyAuth"));
                 })
                 .build();
     }
