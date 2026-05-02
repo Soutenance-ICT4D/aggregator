@@ -21,7 +21,7 @@ public class EmailNotificationProvider implements NotificationProvider {
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
 
-    @Value("${spring.mail.username:noreply@sharepay.com}")
+    @Value("${app.mail.from}")
     private String senderEmail;
 
     @Override

@@ -105,7 +105,10 @@ payment:
 app:
   checkout-base-url: ${CHECKOUT_BASE_URL:http://localhost:8080/checkout/}
   collect-base-url:  ${COLLECT_BASE_URL:http://localhost:8080/collect/}
-  website-url: ${SHAREPAY_URL:https://sharepay.cm}
+  website-url:       ${SHAREPAY_URL:https://sharepay.cm}
+  mail:
+    # Adresse d'expédition — peut différer du login SMTP (ex: Brevo)
+    from: ${MAIL_FROM:${spring.mail.username}}
 
 # Configuration Logging commune (surchargée par profil)
 logging:
