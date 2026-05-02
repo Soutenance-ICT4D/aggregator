@@ -104,8 +104,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isJwtPath(String path) {
         return path.startsWith("/api/v1/apps/") ||
-                path.startsWith("/api/v1/payment-links/") ||
                 path.startsWith("/api/v1/merchants/") ||
+                path.startsWith("/api/v1/webhook/") ||
                 path.startsWith("/api/v1/admin/") ||
                 path.startsWith("/api/v1/support/");
     }

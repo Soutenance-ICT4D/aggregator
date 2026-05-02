@@ -170,7 +170,7 @@ public class AuthServiceImpl implements AuthService {
         otpCodeRepository.delete(otpCode);
 
         // Déclencher l'événement de bienvenue
-        eventPublisher.publishEvent(new UserWelcomeEvent(this, user.getEmail(), user.getFullName()));
+        eventPublisher.publishEvent(new UserWelcomeEvent(this, user.getId(), user.getEmail(), user.getFullName()));
         log.info("UserWelcomeEvent published for: {}", user.getEmail());
 
         // 8. Retourner les informations

@@ -18,3 +18,14 @@
         characterData: true
     });
 })();
+
+/**
+ * Efface les credentials Swagger UI du localStorage puis redirige vers la page de déconnexion.
+ * Appelé par le bouton "Déconnexion" de la page de documentation externe.
+ */
+function swaggerLogout(logoutUrl) {
+    if (!confirm('Voulez-vous vraiment vous déconnecter?')) return false;
+    localStorage.removeItem('authorized');
+    window.location.href = logoutUrl;
+    return false;
+}

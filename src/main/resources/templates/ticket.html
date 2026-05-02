@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Reçu SharePay</title>
+    <style>
+        @page {
+            size: 100mm 280mm;
+            margin: 8mm 6mm;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10px;
+            color: #1e293b;
+            background: white;
+            line-height: 1.5;
+        }
+
+        /* ── En-tête ─────────────────────────────────────────────── */
+        .header {
+            text-align: center;
+            padding-bottom: 8px;
+            border-bottom: 1.5px dashed #cbd5e1;
+            margin-bottom: 10px;
+        }
+
+        .title {
+            font-size: 14px;
+            font-weight: normal;
+            color: #098865;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .generated-at {
+            font-size: 8px;
+            color: #94a3b8;
+            margin-top: 3px;
+        }
+
+        /* ── Sections ────────────────────────────────────────────── */
+        .section-title {
+            font-size: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 1px;
+            padding-bottom: 2px;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 4px;
+        }
+
+        /* ── Table des détails ───────────────────────────────────── */
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        .details-table td {
+            padding: 4px 2px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+
+        .details-table td.label {
+            color: #64748b;
+            width: 35%;
+            font-size: 9px;
+        }
+
+        .details-table td.value {
+            font-weight: bold;
+            text-align: right;
+            font-size: 9px;
+            color: #1e293b;
+        }
+
+        .ref-value {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 9px;
+            color: #098865;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            color: #166534;
+            font-weight: bold;
+        }
+
+        /* ── Bloc montant ────────────────────────────────────────── */
+        .amount-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+            text-align: center;
+            padding: 10px 8px;
+            margin-bottom: 10px;
+        }
+
+        .amount-label {
+            font-size: 8px;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+
+        .amount-value {
+            font-size: 22px;
+            font-weight: normal;
+            color: #098865;
+            line-height: 1;
+        }
+
+        .amount-currency {
+            font-size: 14px;
+            font-weight: bold;
+            color: #098865;
+            margin-left: 2px;
+        }
+
+        /* ── Pied de page ────────────────────────────────────────── */
+        .footer {
+            text-align: center;
+            font-size: 8px;
+            color: #94a3b8;
+            border-top: 1.5px dashed #cbd5e1;
+            padding-top: 8px;
+            margin-top: 10px;
+        }
+
+        .footer-brand {
+            font-weight: bold;
+            color: #098865;
+            font-size: 9px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- En-tête -->
+    <div class="header">
+        <div class="title">Reçu de Paiement</div>
+        <div class="generated-at">
+            Généré le <span th:text="${#temporals.format(createdAt, 'dd/MM/yyyy à HH:mm')}">01/01/2026</span>
+        </div>
+    </div>
+
+    <!-- Détails -->
+    <div class="section-title">Détails du paiement</div>
+    <table class="details-table">
+        <tr>
+            <td class="label">Marchand</td>
+            <td class="value" th:text="${appName}">—</td>
+        </tr>
+        <tr th:if="${description != null and !#strings.isEmpty(description)}">
+            <td class="label">Description</td>
+            <td class="value" th:text="${description}">—</td>
+        </tr>
+        <tr>
+            <td class="label">Référence</td>
+            <td class="value"><span class="ref-value" th:text="${reference}">PI-XXXXXX</span></td>
+        </tr>
+        <tr th:if="${merchantReference != null and !#strings.isEmpty(merchantReference)}">
+            <td class="label">Réf. Marchand</td>
+            <td class="value" th:text="${merchantReference}">—</td>
+        </tr>
+        <tr>
+            <td class="label">Statut</td>
+            <td class="value"><span class="status-badge" th:text="${status}">SUCCESS</span></td>
+        </tr>
+        <tr th:if="${payerName != null and !#strings.isEmpty(payerName)}">
+            <td class="label">Client</td>
+            <td class="value" th:text="${payerName}">—</td>
+        </tr>
+        <tr th:if="${payerAccount != null and !#strings.isEmpty(payerAccount)}">
+            <td class="label">Moyen</td>
+            <td class="value"
+                th:text="${(providerName != null ? providerName + ' - ' : '') + payerAccount}">—</td>
+        </tr>
+    </table>
+
+    <!-- Montant -->
+    <div class="amount-box">
+        <div class="amount-label">Montant payé</div>
+        <div>
+            <span class="amount-value"
+                th:text="${#numbers.formatDecimal(amount, 1, 0, 'WHITESPACE')}">0</span>
+            <span class="amount-currency" th:text="${currency}">XAF</span>
+        </div>
+    </div>
+
+    <!-- Pied de page -->
+    <div class="footer">
+        <div>Ce reçu est un document officiel généré automatiquement.</div>
+        <div>Merci de votre confiance !</div>
+        <div style="margin-top: 4px;">
+            <span class="footer-brand" th:text="${websiteUrl}">sharepay.cm</span>
+        </div>
+    </div>
+
+</body>
+</html>

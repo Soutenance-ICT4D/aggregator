@@ -32,7 +32,7 @@ public class RegisterRequest {
 
     @NotBlank(message = "Le pays est requis")
     @Size(max = 3, message = "Le code pays ne peut pas dépasser 3 caractères")
-    @Schema(description = "Code pays ISO", example = "CMR")
+    @Schema(description = "Code pays ISO", example = "CM")
     private String country;
 }
 

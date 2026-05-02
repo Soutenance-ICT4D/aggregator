@@ -14,5 +14,5 @@ import java.util.UUID;
 public interface ApplicationRepository extends JpaRepository<Application, UUID> {
     List<Application> findByUserAndStatusNotOrderByCreatedAtDesc(User user, AppStatus status);
     Optional<Application> findByIdAndUserAndStatusNot(UUID id, User user, AppStatus status);
-    boolean existsByUserAndName(User user, String name);
+    boolean existsByUserAndNameAndStatusNot(User user, String name, AppStatus status);
 }

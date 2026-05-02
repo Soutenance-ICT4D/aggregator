@@ -29,7 +29,7 @@ public class FundCollectionController {
     private final FundCollectionService fundCollectionService;
 
     // 1. Créer une collecte pour une application donnée
-    @PostMapping("/api/v1/applications/{applicationId}/fund-collections")
+    @PostMapping("/api/v1/apps/{applicationId}/fund-collections")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
             summary = "Créer une collecte de fonds",

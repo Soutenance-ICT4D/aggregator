@@ -46,8 +46,9 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // ── Assets statiques (logo, favicons, etc.) ──
-                        .requestMatchers("/logo_sharepay_svg.svg", "/favicon.ico", "/assets/**").permitAll()
+                        // ── Assets statiques (logo, favicons, images providers) ──
+                        .requestMatchers("/logo_sharepay_svg.svg", "/favicon.ico", "/assets/**", "/swagger-custom.js",
+                                "/*.png", "/*.jpg", "/*.jpeg", "/*.svg", "/*.webp").permitAll()
 
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         // Autoriser les ressources statiques (CSS, JS, images)
@@ -58,13 +59,14 @@ public class SecurityConfig {
                         // ── Endpoints publics ──
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/public/**").permitAll()
+                        .requestMatchers("/checkout/**").permitAll()
+                        .requestMatchers("/collect/**").permitAll()
+                        .requestMatchers("/download-ticket/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
 
                         // ── Endpoints Merchant (JWT avec rôle MERCHANT requis) ──
                         .requestMatchers("/api/v1/merchants/**").hasRole("MERCHANT")
                         .requestMatchers("/api/v1/apps/**").hasRole("MERCHANT")
-                        .requestMatchers("/api/v1/payment-links/**").hasRole("MERCHANT")
-
                         // ── Endpoints Admin (JWT avec rôle ADMIN requis) ──
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
@@ -73,8 +75,10 @@ public class SecurityConfig {
 
                         // ── Endpoints API Key (intégrations B2B) ──
                         .requestMatchers("/api/v1/integration/**").hasRole("API_CLIENT")
-                        .requestMatchers("/api/v1/payments/**").hasRole("API_CLIENT")
-                        .requestMatchers("/api/v1/payouts/**").hasRole("API_CLIENT")
+                        .requestMatchers("/api/v1/pay-in/**").hasRole("API_CLIENT")
+                        .requestMatchers("/api/v1/pay-out/**").hasRole("API_CLIENT")
+                        .requestMatchers("/api/v1/webhook/**").hasRole("API_CLIENT")
+                        .requestMatchers("/api/v1/webhook").hasRole("API_CLIENT")
 
                         // ── Tous les autres endpoints nécessitent une authentification ──
                         .anyRequest().authenticated()

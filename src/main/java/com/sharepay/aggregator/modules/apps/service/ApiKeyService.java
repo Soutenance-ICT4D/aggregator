@@ -7,38 +7,21 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ApiKeyService {
-
-    /**
-     * Crée une clé API pour une application.
-     * Une seule clé active par environnement est autorisée.
-     * La valeur brute de la clé est retournée une seule fois dans {@code plainTextKey}.
-     */
+    // Crée une clé API pour une application.
     ApiKeyResponse createApiKey(UUID userId, UUID appId, CreateApiKeyRequest request);
 
-    /**
-     * Retourne l'historique de toutes les clés API de l'application (actives + révoquées), triées par date de création décroissante.
-     */
+    //Retourne l'historique de toutes les clés API de l'application (actives + révoquées), triées par date de création décroissante.
     List<ApiKeyResponse> getApiKeys(UUID userId, UUID appId);
 
-    /**
-     * Retourne les informations de la clé API active de l'application.
-     */
+    // Retourne les informations de la clé API active de l'application.
     ApiKeyResponse getApiKey(UUID userId, UUID appId);
 
-    /**
-     * Révoque toutes les clés actives de l'application et génère une nouvelle clé.
-     * La valeur brute de la nouvelle clé est retournée une seule fois dans {@code plainTextKey}.
-     */
+    // Révoque toutes les clés actives de l'application et génère une nouvelle clé.
     ApiKeyResponse rotateApiKey(UUID userId, UUID appId, RotateApiKeyRequest request);
 
-    /**
-     * Révoque la clé API active de l'application.
-     */
+    // Révoque la clé API active de l'application.
     void revokeApiKey(UUID userId, UUID appId);
 
-    /**
-     * Valide une clé API brute et retourne ses informations si elle est valide et active.
-     * Utilisé par {@code ApiKeyAuthenticationFilter}.
-     */
+    // Valide une clé API brute et retourne ses informations si elle est valide et active.
     ApiKeyResponse validateApiKey(String rawApiKey);
 }

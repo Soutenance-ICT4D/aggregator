@@ -14,6 +14,7 @@ import com.sharepay.aggregator.shared.constant.FundCollectionStatus;
 import com.sharepay.aggregator.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,9 @@ public class FundCollectionServiceImpl implements FundCollectionService {
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
     private final SecureRandom secureRandom = new SecureRandom();
+
+    @Value("${app.collect-base-url:http://localhost:8080/collect/}")
+    private String collectBaseUrl;
 
     // -------------------------------------------------------------------------
     // CRUD
@@ -275,6 +279,7 @@ public class FundCollectionServiceImpl implements FundCollectionService {
         return FundCollectionResponse.builder()
                 .id(c.getId())
                 .slug(c.getSlug())
+                .collectUrl(collectBaseUrl + c.getSlug())
                 .title(c.getTitle())
                 .description(c.getDescription())
                 .status(c.getStatus())

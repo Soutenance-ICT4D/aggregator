@@ -26,12 +26,12 @@ public class SwaggerConfig {
         return org.springdoc.core.models.GroupedOpenApi.builder()
                 .group("sharepay-frontend")
                 .pathsToMatch(
+                        "/api/v1/public/health",
                         "/api/v1/auth/**",
                         "/api/v1/account/**",
+                        "/api/v1/merchants/**",
                         "/api/v1/apps/**",
                         "/api/v1/fund-collections/**",
-                        "/api/v1/payment/**",
-                        "/api/v1/payout/**",
                         "/api/v1/admin/**",
                         "/api/v1/support/**"
                 )
@@ -49,6 +49,7 @@ public class SwaggerConfig {
 
                     // Ordre logique des tags dans l'UI (de haut en bas)
                     openApi.tags(List.of(
+                            new Tag().name("Health Check").description("Endpoints pour vérifier l'état du système"),
                             new Tag().name("Authentification Marchand").description("Endpoints d'authentification des marchands"),
                             new Tag().name("Compte Marchand").description("Endpoints de gestion du compte marchand"),
                             new Tag().name("Applications").description("Endpoints de gestion des applications marchandes"),
@@ -81,8 +82,10 @@ public class SwaggerConfig {
                 .group("sharepay-aggregator")
                 .pathsToMatch(
                         "/api/v1/public/health",
-                        "/api/v1/payments/**",
-                        "/api/v1/payouts/**"
+                        "/api/v1/pay-in/**",
+                        "/api/v1/pay-out/**",
+                        "/api/v1/webhook",
+                        "/api/v1/webhook/**"
                 )
                 .addOpenApiCustomizer(openApi -> {
                     if (openApi.getComponents() == null) {
@@ -98,9 +101,10 @@ public class SwaggerConfig {
 
                     // Ordre logique des tags dans l'UI
                     openApi.tags(List.of(
-                            new Tag().name("Paiements").description("Initiation et suivi des paiements"),
-                            new Tag().name("Retraits").description("Retraits et remboursements"),
-                            new Tag().name("Webhooks").description("Gestion des webhooks et événements")
+                            new Tag().name("Health Check").description("Endpoints pour vérifier l'état du système"),
+                            new Tag().name("Paiement").description("Initiation et suivi des paiements entrants"),
+                            new Tag().name("Retrait").description("Virements vers bénéficiaires"),
+                            new Tag().name("Webhook").description("Configuration et test des webhooks d'application")
                     ));
 
                     // Schéma de sécurité : API Key

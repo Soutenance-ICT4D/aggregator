@@ -44,8 +44,8 @@ public class ApplicationServiceImpl implements ApplicationService {
     public ApplicationResponse createApplication(UUID userId, CreateApplicationRequest request) {
         User user = userRepository.getReferenceById(userId);
 
-        // Vérifier l'unicité du nom d'application pour cet utilisateur
-        if (applicationRepository.existsByUserAndName(user, request.getName())) {
+        // Vérifier l'unicité du nom parmi les applications non supprimées
+        if (applicationRepository.existsByUserAndNameAndStatusNot(user, request.getName(), AppStatus.DELETED)) {
             throw new BusinessException(
                     "Vous avez déjà une application avec ce nom",
                     HttpStatus.CONFLICT,
@@ -126,9 +126,9 @@ public class ApplicationServiceImpl implements ApplicationService {
                         "APP_NOT_FOUND"
                 ));
 
-        // Vérifier l'unicité du nom uniquement si le nom change
+        // Vérifier l'unicité du nom uniquement si le nom change, parmi les apps non supprimées
         if (request.getName() != null && !request.getName().equals(application.getName())) {
-            if (applicationRepository.existsByUserAndName(user, request.getName())) {
+            if (applicationRepository.existsByUserAndNameAndStatusNot(user, request.getName(), AppStatus.DELETED)) {
                 throw new BusinessException(
                         "Vous avez déjà une application avec ce nom",
                         HttpStatus.CONFLICT,

@@ -14,7 +14,7 @@ import java.util.UUID;
 @Builder
 @Schema(description = "Informations d'une collecte de fonds")
 @JsonPropertyOrder({
-        "id", "slug", "title", "description", "status",
+        "id", "slug", "collectUrl", "title", "description", "status",
         "currency", "isAmountFixed", "amount",
         "coverImageUrl",
         "collectCustomerInfo", "thankYouMessage",
@@ -28,6 +28,9 @@ public class FundCollectionResponse {
 
     @Schema(description = "Slug unique utilisé dans l'URL publique de la collecte", example = "collecte-jeunes-a1b2c3")
     private String slug;
+
+    @Schema(description = "URL publique de la page de paiement de la collecte", example = "http://localhost:8080/collect/collecte-jeunes-a1b2c3")
+    private String collectUrl;
 
     @Schema(description = "Titre de la collecte")
     private String title;

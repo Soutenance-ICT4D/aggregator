@@ -96,10 +96,11 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     public ApiKeyResponse rotateApiKey(UUID userId, UUID appId, RotateApiKeyRequest request) {
         Application application = resolveApplication(userId, appId);
 
-        // Révoquer la clé active si elle existe
+        // Révoquer la clé active si elle existe — saveAndFlush force l'UPDATE en DB
+        // avant l'INSERT de la nouvelle clé (Hibernate exécute les INSERTs avant les UPDATEs)
         apiKeyRepository.findByApplicationAndIsActiveTrue(application).ifPresent(k -> {
             k.setActive(false);
-            apiKeyRepository.save(k);
+            apiKeyRepository.saveAndFlush(k);
         });
 
         // Créer la nouvelle clé

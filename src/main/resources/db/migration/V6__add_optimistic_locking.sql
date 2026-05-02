@@ -1,0 +1,2 @@
+ALTER TABLE transactions_in  ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE transactions_out ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
