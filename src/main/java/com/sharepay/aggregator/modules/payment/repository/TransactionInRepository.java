@@ -60,11 +60,12 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
             """)
     Optional<TransactionIn> findByReferenceWithDetails(String reference);
 
-    /** Volume journalier : somme des netAmount des transactions SUCCESS du marchand pour aujourd'hui. */
+    /** Volume journalier : somme des netAmount des transactions SUCCESS du marchand pour aujourd'hui (apps non supprimées). */
     @Query("""
             SELECT COALESCE(SUM(t.netAmount), 0)
             FROM TransactionIn t
             WHERE t.application.user.id = :userId
+              AND t.application.status != 'DELETED'
               AND t.status = 'SUCCESS'
               AND t.createdAt >= :startOfDay
               AND t.createdAt < :endOfDay
@@ -73,11 +74,12 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
                         @Param("startOfDay") OffsetDateTime startOfDay,
                         @Param("endOfDay") OffsetDateTime endOfDay);
 
-    /** Transactions du jour pour toutes les applications du marchand, ordre anti-chronologique. */
+    /** Transactions du jour pour toutes les applications actives/suspendues du marchand, ordre anti-chronologique. */
     @Query("""
             SELECT t FROM TransactionIn t
             LEFT JOIN FETCH t.paymentProvider
             WHERE t.application.user.id = :userId
+              AND t.application.status != 'DELETED'
               AND t.createdAt >= :startOfDay
               AND t.createdAt < :endOfDay
             ORDER BY t.createdAt DESC
@@ -86,21 +88,23 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
                                         @Param("startOfDay") OffsetDateTime startOfDay,
                                         @Param("endOfDay") OffsetDateTime endOfDay);
 
-    /** Dernières transactions du marchand (toutes applications confondues), paginées. */
+    /** Dernières transactions du marchand (apps non supprimées), paginées. */
     @Query("""
             SELECT t FROM TransactionIn t
             LEFT JOIN FETCH t.paymentProvider
             WHERE t.application.user.id = :userId
+              AND t.application.status != 'DELETED'
             ORDER BY t.createdAt DESC
             """)
     List<TransactionIn> findRecentByUser(@Param("userId") UUID userId, Pageable pageable);
 
-    /** Toutes les transactions du marchand dans un intervalle, avec provider et application chargés. */
+    /** Toutes les transactions du marchand (apps non supprimées) dans un intervalle, avec provider et application chargés. */
     @Query("""
             SELECT t FROM TransactionIn t
             LEFT JOIN FETCH t.paymentProvider
-            JOIN FETCH t.application
-            WHERE t.application.user.id = :userId
+            JOIN FETCH t.application a
+            WHERE a.user.id = :userId
+              AND a.status != 'DELETED'
               AND t.createdAt >= :from
               AND t.createdAt < :to
             ORDER BY t.createdAt ASC
@@ -109,12 +113,13 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
                                            @Param("from") OffsetDateTime from,
                                            @Param("to") OffsetDateTime to);
 
-    /** Noms distincts des applications de ce marchand. */
+    /** Noms distincts des applications non supprimées de ce marchand. */
     @Query("""
             SELECT DISTINCT a.name
             FROM TransactionIn t
             JOIN t.application a
             WHERE a.user.id = :userId
+              AND a.status != 'DELETED'
             ORDER BY a.name ASC
             """)
     List<String> findDistinctApplicationNamesByUser(@Param("userId") UUID userId);

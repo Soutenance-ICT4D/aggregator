@@ -3,6 +3,9 @@ package com.sharepay.aggregator.modules.apps.repository;
 import com.sharepay.aggregator.modules.apps.model.ApiKey;
 import com.sharepay.aggregator.modules.apps.model.Application;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -26,4 +29,9 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
 
     /** Recherche par préfixe (utilisé en complément du hash pour l'optimisation). */
     Optional<ApiKey> findByKeyPrefix(String keyPrefix);
+
+    /** Désactive toutes les clés d'une application lors de sa suppression. */
+    @Modifying
+    @Query("UPDATE ApiKey k SET k.isActive = false WHERE k.application.id = :appId")
+    void deactivateByApplicationId(@Param("appId") UUID appId);
 }

@@ -9,6 +9,7 @@ import com.sharepay.aggregator.modules.apps.model.Application;
 import com.sharepay.aggregator.modules.apps.repository.ApiKeyRepository;
 import com.sharepay.aggregator.modules.apps.repository.ApplicationRepository;
 import com.sharepay.aggregator.modules.apps.service.ApplicationService;
+import com.sharepay.aggregator.modules.collect.repository.FundCollectionRepository;
 import com.sharepay.aggregator.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final ApiKeyRepository apiKeyRepository;
     private final UserRepository userRepository;
+    private final FundCollectionRepository fundCollectionRepository;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Override
@@ -192,7 +194,11 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         application.setStatus(AppStatus.DELETED);
         applicationRepository.save(application);
-        log.info("Application '{}' supprimée (soft delete) par l'utilisateur {}", application.getName(), userId);
+
+        fundCollectionRepository.softDeleteByApplicationId(appId);
+        apiKeyRepository.deactivateByApplicationId(appId);
+
+        log.info("Application '{}' supprimée (soft delete) par l'utilisateur {} — collectes et clés API associées désactivées", application.getName(), userId);
     }
 
     private ApplicationResponse toResponse(Application app) {
