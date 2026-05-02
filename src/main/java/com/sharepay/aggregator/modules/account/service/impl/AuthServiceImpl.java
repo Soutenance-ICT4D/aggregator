@@ -86,7 +86,7 @@ public class AuthServiceImpl implements AuthService {
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
                 .country(request.getCountry())
-                .status(AccountStatus.PENDING_VERIFICATION)
+                .status(AccountStatus.ACTIVE)
                 .role(Role.MERCHANT)
                 .kycLevel(KycLevel.NONE)
                 .build();

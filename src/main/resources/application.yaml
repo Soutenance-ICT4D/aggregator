@@ -24,24 +24,6 @@ spring:
       minimum-idle: 5
       connection-timeout: 30000
 
-  # Configuration Email
-  mail:
-    host: ${MAIL_HOST}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    protocol: smtp
-    default-encoding: UTF-8
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-          ssl:
-            trust: "*"
-
   # Configuration JPA
   jpa:
     open-in-view: false
@@ -100,6 +82,10 @@ payment:
       payin-path:    ${PAYMENT_PAYIN_PATH}
       status-path:   ${PAYMENT_STATUS_PATH}
       notif-url:     ${ORANGE_NOTIF_URL:http://localhost:8080/api/v1/provider-webhook/ORANGE_MONEY_CM}
+
+# SendGrid — API HTTP (fonctionne sur tous les cloud providers)
+sendgrid:
+  api-key: ${SENDGRID_API_KEY}
 
 # ── Configuration applicative ────────────────────────────────────────────────
 app:
