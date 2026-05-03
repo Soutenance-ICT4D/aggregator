@@ -21,11 +21,16 @@ public class TransactionSummaryResponse {
     private String merchantReference;
     private TransactionInType type;
     private Long amount;
+    private Long feeAmount;
     private Long netAmount;
     private String currency;
     private TransactionStatus status;
     private String description;
     private String provider;
     private String payerAccount;
+    private String payerName;
+    private String payerEmail;
+    private String appName;
+    private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

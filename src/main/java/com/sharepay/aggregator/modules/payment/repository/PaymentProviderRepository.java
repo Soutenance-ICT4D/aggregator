@@ -18,4 +18,5 @@ public interface PaymentProviderRepository extends JpaRepository<PaymentProvider
     List<PaymentProvider> findByCountryAndIsActiveTrueOrderByNameAsc(String country);
 
     List<PaymentProvider> findByCurrencyAndIsActiveTrueOrderByNameAsc(String currency);
+    long countByIsActiveTrue();
 }

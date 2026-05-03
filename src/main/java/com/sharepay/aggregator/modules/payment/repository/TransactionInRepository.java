@@ -1,7 +1,9 @@
 package com.sharepay.aggregator.modules.payment.repository;
 
 import com.sharepay.aggregator.modules.payment.model.TransactionIn;
+import com.sharepay.aggregator.shared.constant.TransactionInType;
 import com.sharepay.aggregator.shared.constant.TransactionStatus;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -123,4 +125,32 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
             ORDER BY a.name ASC
             """)
     List<String> findDistinctApplicationNamesByUser(@Param("userId") UUID userId);
+
+    /** Liste paginée des transactions d'un marchand avec filtres optionnels sur le statut et le type. */
+    @Query(
+            value = """
+                    SELECT t FROM TransactionIn t
+                    LEFT JOIN FETCH t.paymentProvider
+                    JOIN FETCH t.application a
+                    WHERE a.user.id = :userId
+                      AND a.status <> 'DELETED'
+                      AND (:status IS NULL OR t.status = :status)
+                      AND (:type IS NULL OR t.type = :type)
+                    ORDER BY t.createdAt DESC
+                    """,
+            countQuery = """
+                    SELECT COUNT(t) FROM TransactionIn t
+                    JOIN t.application a
+                    WHERE a.user.id = :userId
+                      AND a.status <> 'DELETED'
+                      AND (:status IS NULL OR t.status = :status)
+                      AND (:type IS NULL OR t.type = :type)
+                    """
+    )
+    Page<TransactionIn> findPagedByUser(
+            @Param("userId") UUID userId,
+            @Param("status") TransactionStatus status,
+            @Param("type") TransactionInType type,
+            Pageable pageable
+    );
 }

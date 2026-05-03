@@ -10,7 +10,11 @@ import com.sharepay.aggregator.modules.payment.repository.TransactionInRepositor
 import com.sharepay.aggregator.modules.payment.repository.UserBalanceRepository;
 import com.sharepay.aggregator.shared.constant.ChartGroupBy;
 import com.sharepay.aggregator.shared.constant.ChartInterval;
+import com.sharepay.aggregator.shared.constant.TransactionInType;
+import com.sharepay.aggregator.shared.constant.TransactionStatus;
+import com.sharepay.aggregator.shared.dto.PaginationResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -183,6 +187,26 @@ public class MerchantServiceImpl implements MerchantService {
                 .build();
     }
 
+    // ── Transactions paginées ─────────────────────────────────────────────────
+
+    @Override
+    public PaginationResponse<TransactionSummaryResponse> getTransactions(
+            UUID userId, int page, int size,
+            TransactionStatus status, TransactionInType type
+    ) {
+        Page<TransactionIn> result = transactionInRepository.findPagedByUser(
+                userId, status, type, PageRequest.of(page, size)
+        );
+        return PaginationResponse.<TransactionSummaryResponse>builder()
+                .content(result.getContent().stream().map(this::toSummary).toList())
+                .page(result.getNumber())
+                .size(result.getSize())
+                .totalElements(result.getTotalElements())
+                .totalPages(result.getTotalPages())
+                .last(result.isLast())
+                .build();
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private String maskAccount(String account) {
@@ -197,12 +221,17 @@ public class MerchantServiceImpl implements MerchantService {
                 .merchantReference(t.getMerchantReference())
                 .type(t.getType())
                 .amount(t.getAmount())
+                .feeAmount(t.getFeeAmount())
                 .netAmount(t.getNetAmount())
                 .currency(t.getCurrency())
                 .status(t.getStatus())
                 .description(t.getDescription())
                 .provider(t.getPaymentProvider() != null ? t.getPaymentProvider().getName() : null)
                 .payerAccount(maskAccount(t.getPayerAccount()))
+                .payerName(t.getPayerName())
+                .payerEmail(t.getPayerEmail())
+                .appName(t.getApplication() != null ? t.getApplication().getName() : null)
+                .createdAt(t.getCreatedAt())
                 .updatedAt(t.getUpdatedAt())
                 .build();
     }

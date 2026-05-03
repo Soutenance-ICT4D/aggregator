@@ -2,11 +2,15 @@ package com.sharepay.aggregator.modules.account.controller;
 
 import com.sharepay.aggregator.modules.account.dto.response.MerchantDashboardResponse;
 import com.sharepay.aggregator.modules.account.dto.response.TransactionChartResponse;
+import com.sharepay.aggregator.modules.account.dto.response.TransactionSummaryResponse;
 import com.sharepay.aggregator.modules.account.dto.response.UserBalanceResponse;
 import com.sharepay.aggregator.modules.account.service.MerchantService;
 import com.sharepay.aggregator.shared.constant.ChartGroupBy;
 import com.sharepay.aggregator.shared.constant.ChartInterval;
+import com.sharepay.aggregator.shared.constant.TransactionInType;
+import com.sharepay.aggregator.shared.constant.TransactionStatus;
 import com.sharepay.aggregator.shared.dto.ApiResponse;
+import com.sharepay.aggregator.shared.dto.PaginationResponse;
 import com.sharepay.aggregator.shared.security.AuthentificatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -56,6 +60,29 @@ public class MerchantController {
     ) {
         return ApiResponse.success(
                 merchantService.getTransactionChart(currentUser.getAccountId(), interval, groupBy)
+        );
+    }
+
+    @GetMapping("/transactions")
+    @Operation(
+            summary = "Liste paginée des transactions",
+            description = """
+                    Retourne les transactions pay-in du marchand connecté, paginées et filtrables.
+                    - `page`   : numéro de page (0-based, défaut : 0)
+                    - `size`   : nombre d'éléments par page (défaut : 20, max recommandé : 100)
+                    - `status` : filtre optionnel — `PENDING` | `SUCCESS` | `FAILED` | `CANCELLED` | `REFUNDED`
+                    - `type`   : filtre optionnel — `CHECKOUT` | `CHARGE` | `FUND_COLLECTION`
+                    """
+    )
+    public ApiResponse<PaginationResponse<TransactionSummaryResponse>> getTransactions(
+            @AuthenticationPrincipal AuthentificatedUser currentUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) TransactionStatus status,
+            @RequestParam(required = false) TransactionInType type
+    ) {
+        return ApiResponse.success(
+                merchantService.getTransactions(currentUser.getAccountId(), page, size, status, type)
         );
     }
 
