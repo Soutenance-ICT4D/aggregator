@@ -34,7 +34,10 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
 
     List<TransactionIn> findByStatusAndProviderTransactionIdIsNotNull(TransactionStatus status);
 
-    /** Charge les transactions PENDING avec toutes les associations nécessaires au scheduler. */
+    /**
+     * Charge les transactions PENDING actives (non expirées) pour le polling du scheduler.
+     * Les transactions expirées sont gérées séparément par findExpiredPending.
+     */
     @Query("""
             SELECT t FROM TransactionIn t
             JOIN FETCH t.application a
@@ -42,8 +45,41 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
             LEFT JOIN FETCH t.paymentProvider
             WHERE t.status = 'PENDING'
               AND t.providerTransactionId IS NOT NULL
+              AND (t.expiresAt IS NULL OR t.expiresAt > :now)
             """)
-    List<TransactionIn> findPendingWithDetails();
+    List<TransactionIn> findPendingWithDetails(@Param("now") OffsetDateTime now);
+
+    /** Recharge une transaction avec ses associations (utilisé par savePayInSuccess pour éviter les valeurs périmées). */
+    @Query("""
+            SELECT t FROM TransactionIn t
+            JOIN FETCH t.application a
+            JOIN FETCH a.user
+            LEFT JOIN FETCH t.paymentProvider
+            WHERE t.id = :id
+            """)
+    Optional<TransactionIn> findByIdWithDetails(@Param("id") UUID id);
+
+    /**
+     * Transactions PENDING à clôturer :
+     *  - CHECKOUT / FUND_COLLECTION : expiresAt dépassé
+     *  - CHARGE (pas d'expiresAt) : plus vieilles que maxAge (seuil = now - 2h)
+     */
+    @Query("""
+            SELECT t FROM TransactionIn t
+            JOIN FETCH t.application a
+            JOIN FETCH a.user
+            LEFT JOIN FETCH t.paymentProvider
+            WHERE t.status = 'PENDING'
+              AND (
+                (t.expiresAt IS NOT NULL AND t.expiresAt < :now)
+                OR
+                (t.expiresAt IS NULL AND t.createdAt < :maxAge)
+              )
+            """)
+    List<TransactionIn> findExpiredPending(
+            @Param("now")    OffsetDateTime now,
+            @Param("maxAge") OffsetDateTime maxAge
+    );
 
     /** Charge une transaction avec son application pour la page checkout. */
     @Query("""
@@ -114,6 +150,27 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
     List<TransactionIn> findForChartByUser(@Param("userId") UUID userId,
                                            @Param("from") OffsetDateTime from,
                                            @Param("to") OffsetDateTime to);
+
+    /** Toutes les transactions (vue admin globale), paginées. */
+    @Query("""
+            SELECT t FROM TransactionIn t
+            LEFT JOIN FETCH t.paymentProvider
+            JOIN FETCH t.application a
+            JOIN FETCH a.user
+            ORDER BY t.createdAt DESC
+            """)
+    Page<TransactionIn> findAllForAdmin(Pageable pageable);
+
+    /** Toutes les transactions d'un marchand (vue admin), paginées. */
+    @Query("""
+            SELECT t FROM TransactionIn t
+            LEFT JOIN FETCH t.paymentProvider
+            JOIN FETCH t.application a
+            JOIN FETCH a.user
+            WHERE a.user.id = :userId
+            ORDER BY t.createdAt DESC
+            """)
+    Page<TransactionIn> findAllByMerchantForAdmin(@Param("userId") UUID userId, Pageable pageable);
 
     /** Noms distincts des applications non supprimées de ce marchand. */
     @Query("""

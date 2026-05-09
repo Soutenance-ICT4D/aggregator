@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,7 +28,7 @@ public class TransactionPersistenceHelper {
 
     @Transactional(readOnly = true)
     public List<TransactionIn> loadPendingPayIns() {
-        return transactionInRepository.findPendingWithDetails();
+        return transactionInRepository.findPendingWithDetails(OffsetDateTime.now());
     }
 
     @Transactional(readOnly = true)
@@ -36,7 +37,11 @@ public class TransactionPersistenceHelper {
     }
 
     @Transactional
-    public void savePayInSuccess(TransactionIn tx) {
+    public void savePayInSuccess(TransactionIn txRef) {
+        // Rechargement depuis la DB : garantit que feeAmount/netAmount sont à jour
+        // (le checkout les fixe dans confirmCheckout, après la création initiale à 0)
+        TransactionIn tx = transactionInRepository.findByIdWithDetails(txRef.getId())
+                .orElseThrow(() -> new IllegalStateException("Transaction introuvable : " + txRef.getId()));
         tx.setStatus(TransactionStatus.SUCCESS);
         transactionInRepository.save(tx);
         UUID userId = tx.getApplication().getUser().getId();
@@ -77,6 +82,21 @@ public class TransactionPersistenceHelper {
         UUID userId = tx.getApplication().getUser().getId();
         long totalDebit = tx.getAmount() + tx.getFeeAmount();
         userBalanceRepository.rollbackPendingToAvailable(userId, tx.getCurrency(), totalDebit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionIn> loadExpiredPendingPayIns() {
+        OffsetDateTime now    = OffsetDateTime.now();
+        OffsetDateTime maxAge = now.minusHours(2);
+        return transactionInRepository.findExpiredPending(now, maxAge);
+    }
+
+    @Transactional
+    public void savePayInExpired(TransactionIn tx) {
+        tx.setStatus(TransactionStatus.FAILED);
+        tx.setFailureCode("EXPIRED");
+        tx.setFailureReason("Session expirée.");
+        transactionInRepository.save(tx);
     }
 
     @Transactional

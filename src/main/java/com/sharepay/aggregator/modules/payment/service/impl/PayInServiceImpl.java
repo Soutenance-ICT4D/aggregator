@@ -20,6 +20,7 @@ import com.sharepay.aggregator.shared.exception.BusinessException;
 import com.sharepay.aggregator.shared.gateway.PaymentGatewayRegistry;
 import com.sharepay.aggregator.shared.gateway.dto.GatewayPayInRequest;
 import com.sharepay.aggregator.shared.gateway.dto.GatewayPayInResponse;
+import com.sharepay.aggregator.modules.payment.service.FeeCalculatorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,8 +28,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.HexFormat;
@@ -45,6 +44,7 @@ public class PayInServiceImpl implements PayInService {
     private final UserBalanceRepository userBalanceRepository;
     private final ApiKeyRepository apiKeyRepository;
     private final PaymentGatewayRegistry gatewayRegistry;
+    private final FeeCalculatorService feeCalculatorService;
 
     @Value("${app.checkout-base-url}")
     private String checkoutBaseUrl;
@@ -111,7 +111,7 @@ public class PayInServiceImpl implements PayInService {
 
         validateAmount(provider, request.getAmount(), request.getCurrency());
 
-        long feeAmount = computeFee(provider, request.getAmount());
+        long feeAmount = feeCalculatorService.computeFee(provider, request.getAmount());
         String reference = generateReference("PI");
 
         TransactionIn tx = TransactionIn.builder()
@@ -205,21 +205,6 @@ public class PayInServiceImpl implements PayInService {
             throw new BusinessException("Montant minimum : " + provider.getMinAmount() + " " + currency + ".", HttpStatus.BAD_REQUEST, "AMOUNT_BELOW_MINIMUM");
         if (provider.getMaxAmount() != null && amount > provider.getMaxAmount())
             throw new BusinessException("Montant maximum : " + provider.getMaxAmount() + " " + currency + ".", HttpStatus.BAD_REQUEST, "AMOUNT_ABOVE_MAXIMUM");
-    }
-
-    private long computeFee(PaymentProvider provider, long amount) {
-        BigDecimal fee = BigDecimal.ZERO;
-        if (provider.getFeePercentage() != null) {
-            fee = fee.add(
-                BigDecimal.valueOf(amount)
-                    .multiply(provider.getFeePercentage())
-                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP)
-            );
-        }
-        if (provider.getFeeFixed() != null) {
-            fee = fee.add(BigDecimal.valueOf(provider.getFeeFixed()));
-        }
-        return fee.longValue();
     }
 
     private String generateReference(String prefix) {

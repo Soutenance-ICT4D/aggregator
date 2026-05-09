@@ -1,9 +1,12 @@
 package com.sharepay.aggregator.modules.account.service;
 
 import com.sharepay.aggregator.modules.account.dto.response.MerchantDashboardResponse;
+import com.sharepay.aggregator.modules.account.dto.response.PaymentProviderResponse;
 import com.sharepay.aggregator.modules.account.dto.response.TransactionChartResponse;
 import com.sharepay.aggregator.modules.account.dto.response.TransactionSummaryResponse;
 import com.sharepay.aggregator.modules.account.dto.response.UserBalanceResponse;
+import com.sharepay.aggregator.modules.payment.dto.request.TransferRequest;
+import com.sharepay.aggregator.modules.payment.dto.response.TransferResponse;
 import com.sharepay.aggregator.shared.constant.ChartGroupBy;
 import com.sharepay.aggregator.shared.constant.ChartInterval;
 import com.sharepay.aggregator.shared.constant.TransactionInType;
@@ -28,4 +31,8 @@ public interface MerchantService {
             TransactionStatus status,
             TransactionInType type
     );
+
+    List<PaymentProviderResponse> getWithdrawalProviders();
+
+    TransferResponse initiateWithdrawal(UUID userId, TransferRequest request);
 }

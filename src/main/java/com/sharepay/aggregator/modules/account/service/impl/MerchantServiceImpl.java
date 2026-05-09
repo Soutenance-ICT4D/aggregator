@@ -2,12 +2,15 @@ package com.sharepay.aggregator.modules.account.service.impl;
 
 import com.sharepay.aggregator.modules.account.dto.response.*;
 import com.sharepay.aggregator.modules.account.service.MerchantService;
+import com.sharepay.aggregator.modules.payment.dto.request.TransferRequest;
+import com.sharepay.aggregator.modules.payment.dto.response.TransferResponse;
 import com.sharepay.aggregator.modules.payment.model.PaymentProvider;
 import com.sharepay.aggregator.modules.payment.model.TransactionIn;
 import com.sharepay.aggregator.modules.payment.model.UserBalance;
 import com.sharepay.aggregator.modules.payment.repository.PaymentProviderRepository;
 import com.sharepay.aggregator.modules.payment.repository.TransactionInRepository;
 import com.sharepay.aggregator.modules.payment.repository.UserBalanceRepository;
+import com.sharepay.aggregator.modules.payment.service.PayOutService;
 import com.sharepay.aggregator.shared.constant.ChartGroupBy;
 import com.sharepay.aggregator.shared.constant.ChartInterval;
 import com.sharepay.aggregator.shared.constant.TransactionInType;
@@ -34,6 +37,7 @@ public class MerchantServiceImpl implements MerchantService {
     private final UserBalanceRepository userBalanceRepository;
     private final TransactionInRepository transactionInRepository;
     private final PaymentProviderRepository paymentProviderRepository;
+    private final PayOutService payOutService;
 
     // ── Balances ──────────────────────────────────────────────────────────────
 
@@ -234,5 +238,30 @@ public class MerchantServiceImpl implements MerchantService {
                 .createdAt(t.getCreatedAt())
                 .updatedAt(t.getUpdatedAt())
                 .build();
+    }
+
+    // ── Providers ─────────────────────────────────────────────────────────────
+
+    @Override
+    public List<PaymentProviderResponse> getWithdrawalProviders() {
+        return paymentProviderRepository.findByIsActiveTrueOrderByNameAsc()
+                .stream()
+                .map(p -> PaymentProviderResponse.builder()
+                        .code(p.getCode())
+                        .name(p.getName())
+                        .type(p.getType().name())
+                        .currency(p.getCurrency())
+                        .minAmount(p.getMinAmount())
+                        .maxAmount(p.getMaxAmount())
+                        .build())
+                .toList();
+    }
+
+    // ── Withdrawal ────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public TransferResponse initiateWithdrawal(UUID userId, TransferRequest request) {
+        return payOutService.createTransferByUserId(userId, request);
     }
 }

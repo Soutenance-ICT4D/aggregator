@@ -3,6 +3,8 @@ package com.sharepay.aggregator.modules.payment.service.impl;
 import com.sharepay.aggregator.modules.apps.model.ApiKey;
 import com.sharepay.aggregator.modules.apps.model.Application;
 import com.sharepay.aggregator.modules.apps.repository.ApiKeyRepository;
+import com.sharepay.aggregator.modules.apps.repository.ApplicationRepository;
+import com.sharepay.aggregator.shared.constant.AppStatus;
 import com.sharepay.aggregator.modules.payment.dto.request.TransferRequest;
 import com.sharepay.aggregator.modules.payment.dto.response.PayOutStatusResponse;
 import com.sharepay.aggregator.modules.payment.dto.response.TransferResponse;
@@ -17,14 +19,13 @@ import com.sharepay.aggregator.shared.exception.BusinessException;
 import com.sharepay.aggregator.shared.gateway.PaymentGatewayRegistry;
 import com.sharepay.aggregator.shared.gateway.dto.GatewayPayOutRequest;
 import com.sharepay.aggregator.shared.gateway.dto.GatewayPayOutResponse;
+import com.sharepay.aggregator.modules.payment.service.FeeCalculatorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.UUID;
@@ -38,7 +39,9 @@ public class PayOutServiceImpl implements PayOutService {
     private final PaymentProviderRepository paymentProviderRepository;
     private final UserBalanceRepository userBalanceRepository;
     private final ApiKeyRepository apiKeyRepository;
+    private final ApplicationRepository applicationRepository;
     private final PaymentGatewayRegistry gatewayRegistry;
+    private final FeeCalculatorService feeCalculatorService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -49,12 +52,24 @@ public class PayOutServiceImpl implements PayOutService {
     @Override
     @Transactional
     public TransferResponse createTransfer(UUID apiKeyId, TransferRequest request) {
-        Application application = resolveApplication(apiKeyId);
+        return doTransfer(resolveApplication(apiKeyId), request);
+    }
+
+    @Override
+    @Transactional
+    public TransferResponse createTransferByUserId(UUID userId, TransferRequest request) {
+        Application application = applicationRepository
+                .findFirstByUser_IdAndStatusNotOrderByCreatedAtDesc(userId, AppStatus.DELETED)
+                .orElseThrow(() -> new BusinessException("Aucune application active.", HttpStatus.BAD_REQUEST, "NO_APPLICATION"));
+        return doTransfer(application, request);
+    }
+
+    private TransferResponse doTransfer(Application application, TransferRequest request) {
         PaymentProvider provider = resolveProvider(request.getPaymentMethod());
 
         validateAmount(provider, request.getAmount(), request.getCurrency());
 
-        long feeAmount  = computeFee(provider, request.getAmount());
+        long feeAmount  = feeCalculatorService.computeFee(provider, request.getAmount());
         long totalDebit = request.getAmount() + feeAmount;
 
         int updated = userBalanceRepository.moveAvailableToPending(
@@ -83,7 +98,6 @@ public class PayOutServiceImpl implements PayOutService {
 
         transactionOutRepository.save(tx);
 
-        // Appel au provider via le gateway
         GatewayPayOutResponse gwResponse = gatewayRegistry.resolve(provider.getCode())
                 .initiatePayOut(GatewayPayOutRequest.builder()
                         .reference(reference)
@@ -153,21 +167,6 @@ public class PayOutServiceImpl implements PayOutService {
             throw new BusinessException("Montant minimum : " + provider.getMinAmount() + " " + currency + ".", HttpStatus.BAD_REQUEST, "AMOUNT_BELOW_MINIMUM");
         if (provider.getMaxAmount() != null && amount > provider.getMaxAmount())
             throw new BusinessException("Montant maximum : " + provider.getMaxAmount() + " " + currency + ".", HttpStatus.BAD_REQUEST, "AMOUNT_ABOVE_MAXIMUM");
-    }
-
-    private long computeFee(PaymentProvider provider, long amount) {
-        BigDecimal fee = BigDecimal.ZERO;
-        if (provider.getFeePercentage() != null) {
-            fee = fee.add(
-                BigDecimal.valueOf(amount)
-                    .multiply(provider.getFeePercentage())
-                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP)
-            );
-        }
-        if (provider.getFeeFixed() != null) {
-            fee = fee.add(BigDecimal.valueOf(provider.getFeeFixed()));
-        }
-        return fee.longValue();
     }
 
     private String generateReference(String prefix) {

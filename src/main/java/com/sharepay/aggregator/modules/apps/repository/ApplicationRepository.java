@@ -15,4 +15,5 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
     List<Application> findByUserAndStatusNotOrderByCreatedAtDesc(User user, AppStatus status);
     Optional<Application> findByIdAndUserAndStatusNot(UUID id, User user, AppStatus status);
     boolean existsByUserAndNameAndStatusNot(User user, String name, AppStatus status);
+    Optional<Application> findFirstByUser_IdAndStatusNotOrderByCreatedAtDesc(UUID userId, AppStatus status);
 }

@@ -8,5 +8,6 @@ import java.util.UUID;
 
 public interface PayOutService {
     TransferResponse createTransfer(UUID apiKeyId, TransferRequest request);
+    TransferResponse createTransferByUserId(UUID userId, TransferRequest request);
     PayOutStatusResponse checkStatus(UUID apiKeyId, String reference);
 }

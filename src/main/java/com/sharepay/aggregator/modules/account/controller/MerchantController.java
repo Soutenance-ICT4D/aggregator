@@ -1,10 +1,13 @@
 package com.sharepay.aggregator.modules.account.controller;
 
 import com.sharepay.aggregator.modules.account.dto.response.MerchantDashboardResponse;
+import com.sharepay.aggregator.modules.account.dto.response.PaymentProviderResponse;
 import com.sharepay.aggregator.modules.account.dto.response.TransactionChartResponse;
 import com.sharepay.aggregator.modules.account.dto.response.TransactionSummaryResponse;
 import com.sharepay.aggregator.modules.account.dto.response.UserBalanceResponse;
 import com.sharepay.aggregator.modules.account.service.MerchantService;
+import com.sharepay.aggregator.modules.payment.dto.request.TransferRequest;
+import com.sharepay.aggregator.modules.payment.dto.response.TransferResponse;
 import com.sharepay.aggregator.shared.constant.ChartGroupBy;
 import com.sharepay.aggregator.shared.constant.ChartInterval;
 import com.sharepay.aggregator.shared.constant.TransactionInType;
@@ -15,7 +18,9 @@ import com.sharepay.aggregator.shared.security.AuthentificatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -103,5 +108,28 @@ public class MerchantController {
             @AuthenticationPrincipal AuthentificatedUser currentUser
     ) {
         return ApiResponse.success(merchantService.getDashboard(currentUser.getAccountId()));
+    }
+
+    @GetMapping("/providers")
+    @Operation(
+            summary = "Providers disponibles pour les retraits",
+            description = "Retourne la liste des opérateurs de paiement actifs pour initier un retrait."
+    )
+    public ApiResponse<List<PaymentProviderResponse>> getWithdrawalProviders() {
+        return ApiResponse.success(merchantService.getWithdrawalProviders());
+    }
+
+    @PostMapping("/withdraw")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+            summary = "Initier un retrait depuis le dashboard",
+            description = "Crée un retrait (payout) depuis le solde disponible du marchand. " +
+                    "Utilise la première application active du marchand."
+    )
+    public ApiResponse<TransferResponse> withdraw(
+            @AuthenticationPrincipal AuthentificatedUser currentUser,
+            @Valid @RequestBody TransferRequest request
+    ) {
+        return ApiResponse.success(merchantService.initiateWithdrawal(currentUser.getAccountId(), request));
     }
 }

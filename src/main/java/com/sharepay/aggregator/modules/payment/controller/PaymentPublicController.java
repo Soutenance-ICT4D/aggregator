@@ -6,6 +6,7 @@ import com.sharepay.aggregator.modules.payment.model.PaymentProvider;
 import com.sharepay.aggregator.modules.payment.model.TransactionIn;
 import com.sharepay.aggregator.modules.payment.provider.CheckoutEventPublisher;
 import com.sharepay.aggregator.modules.payment.repository.PaymentProviderRepository;
+import com.sharepay.aggregator.modules.payment.service.FeeCalculatorService;
 import com.sharepay.aggregator.modules.payment.repository.TransactionInRepository;
 import com.sharepay.aggregator.shared.constant.FundCollectionStatus;
 import com.sharepay.aggregator.shared.constant.TransactionInType;
@@ -39,6 +40,7 @@ public class PaymentPublicController {
     private final PaymentProviderRepository paymentProviderRepository;
     private final PaymentGatewayRegistry    gatewayRegistry;
     private final CheckoutEventPublisher    eventPublisher;
+    private final FeeCalculatorService      feeCalculatorService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -89,7 +91,7 @@ public class PaymentPublicController {
 
         PaymentProvider provider = resolveActiveProvider(providerCode, tx.getCurrency());
 
-        long feeAmount = computeFee(provider, tx.getAmount());
+        long feeAmount = feeCalculatorService.computeFee(provider, tx.getAmount());
         long netAmount = tx.getAmount() - feeAmount;
 
         tx.setPaymentProvider(provider);
@@ -178,7 +180,7 @@ public class PaymentPublicController {
         }
 
         // ── Création de la transaction ─────────────────────────────────────
-        long feeAmount    = computeFee(provider, finalAmount);
+        long feeAmount    = feeCalculatorService.computeFee(provider, finalAmount);
         long netAmount    = finalAmount - feeAmount;
         String reference  = generateReference("FC");
         String sessionToken = generateSessionToken();
@@ -263,15 +265,6 @@ public class PaymentPublicController {
                     "Devise incompatible avec ce moyen de paiement.", HttpStatus.BAD_REQUEST, "CURRENCY_MISMATCH");
         }
         return provider;
-    }
-
-    private long computeFee(PaymentProvider provider, long amount) {
-        long fee = 0L;
-        if (provider.getFeePercentage() != null)
-            fee += Math.round(amount * provider.getFeePercentage().doubleValue() / 100.0);
-        if (provider.getFeeFixed() != null)
-            fee += provider.getFeeFixed();
-        return fee;
     }
 
     private String generateReference(String prefix) {

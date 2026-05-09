@@ -29,6 +29,28 @@ public class TransactionStatusScheduler {
      * Pas de @Transactional ici : chaque appel au helper ouvre sa propre
      * transaction courte, séparée de l'appel réseau vers le provider.
      */
+    @Scheduled(fixedDelay = 60_000)
+    public void expireStaleCheckouts() {
+        List<TransactionIn> expired = persistenceHelper.loadExpiredPendingPayIns();
+        if (expired.isEmpty()) return;
+
+        log.info("[Scheduler] {} paiement(s) expiré(s) à clôturer", expired.size());
+        expired.forEach(tx -> {
+            try {
+                persistenceHelper.savePayInExpired(tx);
+                if (tx.getSessionToken() != null) {
+                    checkoutEventPublisher.publish(tx.getSessionToken(), "FAILED", "Session expirée.");
+                }
+                webhookService.dispatchEvent(tx.getApplication(), "payment.expired", payInData(tx));
+                log.info("[Scheduler] Paiement {} → EXPIRED (expiresAt dépassé)", tx.getReference());
+            } catch (OptimisticLockingFailureException e) {
+                log.warn("[Scheduler] Paiement {} déjà traité par une autre instance.", tx.getReference());
+            } catch (Exception e) {
+                log.error("[Scheduler] Erreur expiration {} : {}", tx.getReference(), e.getMessage());
+            }
+        });
+    }
+
     @Scheduled(fixedDelay = 15_000)
     public void checkPendingTransactions() {
         List<TransactionIn>  payIns  = persistenceHelper.loadPendingPayIns();

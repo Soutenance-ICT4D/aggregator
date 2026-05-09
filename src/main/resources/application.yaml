@@ -1,13 +1,15 @@
 # Configuration Server
 server:
   port: ${SPRING_SERVER_PORT:8080}
-  error:
-    include-message: always
-    include-binding-errors: always
 
 spring:
   application:
     name: sharepay-aggregator
+
+  web:
+    error:
+      include-message: always
+      include-binding-errors: always
 
   # Profile actif
   profiles:
@@ -40,6 +42,9 @@ spring:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
+    placeholders:
+      adminEmail: ${ADMIN_EMAIL:admin@sharepay.com}
+      adminPasswordHash: ${ADMIN_PASSWORD_HASH:$2b$12$gpu6wM25/xNrW7rAgIGqwe5Gq1/jp/9BkVibr4lierdTAOx/RE0Zq}
 
 # Configuration JWT
 jwt:
