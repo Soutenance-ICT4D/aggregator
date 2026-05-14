@@ -1,6 +1,9 @@
 package com.sharepay.aggregator.modules.account.controller;
 
+import com.sharepay.aggregator.modules.account.dto.request.ChangePasswordRequest;
+import com.sharepay.aggregator.modules.account.dto.request.UpdateProfileRequest;
 import com.sharepay.aggregator.modules.account.dto.response.MerchantDashboardResponse;
+import com.sharepay.aggregator.modules.account.dto.response.MerchantProfileResponse;
 import com.sharepay.aggregator.modules.account.dto.response.PaymentProviderResponse;
 import com.sharepay.aggregator.modules.account.dto.response.TransactionChartResponse;
 import com.sharepay.aggregator.modules.account.dto.response.TransactionSummaryResponse;
@@ -34,6 +37,42 @@ import java.util.List;
 public class MerchantController {
 
     private final MerchantService merchantService;
+
+    @GetMapping("/me")
+    @Operation(
+            summary = "Consulter son profil",
+            description = "Retourne le profil complet du marchand connecté : informations personnelles, statut, niveau KYC."
+    )
+    public ApiResponse<MerchantProfileResponse> getProfile(
+            @AuthenticationPrincipal AuthentificatedUser currentUser
+    ) {
+        return ApiResponse.success(merchantService.getProfile(currentUser.getAccountId()));
+    }
+
+    @PatchMapping("/me")
+    @Operation(
+            summary = "Mettre à jour son profil",
+            description = "Modifie le nom complet, le numéro de téléphone, le code pays et/ou l'URL de l'avatar. Seuls les champs fournis sont mis à jour (PATCH sémantique)."
+    )
+    public ApiResponse<MerchantProfileResponse> updateProfile(
+            @AuthenticationPrincipal AuthentificatedUser currentUser,
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
+        return ApiResponse.success(merchantService.updateProfile(currentUser.getAccountId(), request));
+    }
+
+    @PutMapping("/me/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(
+            summary = "Changer son mot de passe",
+            description = "Vérifie le mot de passe actuel puis le remplace par le nouveau. Non disponible pour les comptes OAuth."
+    )
+    public void changePassword(
+            @AuthenticationPrincipal AuthentificatedUser currentUser,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        merchantService.changePassword(currentUser.getAccountId(), request);
+    }
 
     @GetMapping("/balance")
     @Operation(

@@ -49,7 +49,6 @@ public class SecurityConfig {
                         // ── Assets statiques (logo, favicons, images providers) ──
                         .requestMatchers("/logo_sharepay_svg.svg", "/favicon.ico", "/assets/**", "/swagger-custom.js",
                                 "/*.png", "/*.jpg", "/*.jpeg", "/*.svg", "/*.webp").permitAll()
-
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         // Autoriser les ressources statiques (CSS, JS, images)
                         .requestMatchers("/swagger-ui/*.css", "/swagger-ui/*.js", "/swagger-ui/*.png", "/swagger-ui/*.jpg", "/swagger-ui/*.svg", "/swagger-ui/favicon-*.png", "/swagger-ui/oauth2-redirect.html").permitAll()

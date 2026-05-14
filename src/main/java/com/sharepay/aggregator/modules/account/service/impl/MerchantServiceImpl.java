@@ -1,6 +1,10 @@
 package com.sharepay.aggregator.modules.account.service.impl;
 
+import com.sharepay.aggregator.modules.account.dto.request.ChangePasswordRequest;
+import com.sharepay.aggregator.modules.account.dto.request.UpdateProfileRequest;
 import com.sharepay.aggregator.modules.account.dto.response.*;
+import com.sharepay.aggregator.modules.account.model.User;
+import com.sharepay.aggregator.modules.account.repository.UserRepository;
 import com.sharepay.aggregator.modules.account.service.MerchantService;
 import com.sharepay.aggregator.modules.payment.dto.request.TransferRequest;
 import com.sharepay.aggregator.modules.payment.dto.response.TransferResponse;
@@ -16,9 +20,12 @@ import com.sharepay.aggregator.shared.constant.ChartInterval;
 import com.sharepay.aggregator.shared.constant.TransactionInType;
 import com.sharepay.aggregator.shared.constant.TransactionStatus;
 import com.sharepay.aggregator.shared.dto.PaginationResponse;
+import com.sharepay.aggregator.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,10 +41,124 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class MerchantServiceImpl implements MerchantService {
 
+    private final UserRepository userRepository;
     private final UserBalanceRepository userBalanceRepository;
     private final TransactionInRepository transactionInRepository;
     private final PaymentProviderRepository paymentProviderRepository;
     private final PayOutService payOutService;
+    private final PasswordEncoder passwordEncoder;
+
+    private static final List<String> ALLOWED_AVATAR_PREFIXES = List.of(
+            "data:image/jpeg;base64,",
+            "data:image/jpg;base64,",
+            "data:image/png;base64,",
+            "data:image/webp;base64,"
+    );
+    private static final long MAX_AVATAR_BYTES = 1_048_576L; // 1 Mo
+
+    // ── Profil ────────────────────────────────────────────────────────────────
+
+    @Override
+    public MerchantProfileResponse getProfile(UUID userId) {
+        User user = findUserOrThrow(userId);
+        return toProfileResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public MerchantProfileResponse updateProfile(UUID userId, UpdateProfileRequest request) {
+        User user = findUserOrThrow(userId);
+
+        if (request.getFullName()  != null) user.setFullName(request.getFullName());
+        if (request.getPhone()     != null) user.setPhone(request.getPhone());
+        if (request.getCountry()   != null) user.setCountry(request.getCountry());
+        if (request.getAvatarUrl() != null) {
+            if (request.getAvatarUrl().isEmpty()) {
+                user.setAvatarUrl(null);
+            } else {
+                validateAvatarDataUri(request.getAvatarUrl());
+                user.setAvatarUrl(request.getAvatarUrl());
+            }
+        }
+
+        return toProfileResponse(userRepository.save(user));
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(UUID userId, ChangePasswordRequest request) {
+        User user = findUserOrThrow(userId);
+
+        if (user.getPasswordHash() == null) {
+            throw new BusinessException(
+                "Impossible de changer le mot de passe d'un compte OAuth",
+                HttpStatus.BAD_REQUEST,
+                "OAUTH_ACCOUNT"
+            );
+        }
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new BusinessException(
+                "Mot de passe actuel incorrect",
+                HttpStatus.BAD_REQUEST,
+                "INVALID_CURRENT_PASSWORD"
+            );
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    // ── Helpers profil ────────────────────────────────────────────────────────
+
+    private void validateAvatarDataUri(String avatarUrl) {
+        if (!avatarUrl.startsWith("data:")) return; // URL externe — pas de validation
+
+        boolean validPrefix = ALLOWED_AVATAR_PREFIXES.stream().anyMatch(avatarUrl::startsWith);
+        if (!validPrefix) {
+            throw new BusinessException(
+                "Format d'image non supporté. Utilisez jpg, png ou webp.",
+                HttpStatus.BAD_REQUEST, "INVALID_IMAGE_FORMAT"
+            );
+        }
+
+        int dataStart = avatarUrl.indexOf(',') + 1;
+        long approximateBytes = (long) ((avatarUrl.length() - dataStart) * 0.75);
+        if (approximateBytes > MAX_AVATAR_BYTES) {
+            throw new BusinessException(
+                "L'image ne doit pas dépasser 1 Mo.",
+                HttpStatus.BAD_REQUEST, "IMAGE_TOO_LARGE"
+            );
+        }
+    }
+
+    private User findUserOrThrow(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(
+                        "Utilisateur non trouvé",
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND"
+                ));
+    }
+
+    private MerchantProfileResponse toProfileResponse(User user) {
+        return MerchantProfileResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .country(user.getCountry())
+                .avatarUrl(user.getAvatarUrl())
+                .role(user.getRole())
+                .status(user.getStatus())
+                .kycLevel(user.getKycLevel())
+                .provider(user.getProvider())
+                .emailVerified(user.isEmailVerified())
+                .phoneVerified(user.isPhoneVerified())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
 
     // ── Balances ──────────────────────────────────────────────────────────────
 
