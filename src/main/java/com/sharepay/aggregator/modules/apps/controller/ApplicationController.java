@@ -83,24 +83,7 @@ public class ApplicationController {
         return ApiResponse.success("Application mise à jour avec succès.", app);
     }
 
-    // 5. Rotation du webhook secret
-    @PostMapping("/{appId}/webhook-secret/rotate")
-    @Operation(
-            summary = "Rotation du webhook secret",
-            description = "Génère un nouveau webhook secret pour l'application. " +
-                    "L'ancien secret est immédiatement invalidé — les webhooks signés avec celui-ci ne pourront plus être vérifiés. " +
-                    "La valeur brute du nouveau secret (plainTextWebhookSecret) est retournée **une seule fois** — stockez-la immédiatement. " +
-                    "À utiliser en cas de compromission du secret."
-    )
-    public ApiResponse<ApplicationResponse> rotateWebhookSecret(
-            @PathVariable UUID appId,
-            @AuthenticationPrincipal AuthentificatedUser currentUser
-    ) {
-        ApplicationResponse response = applicationService.rotateWebhookSecret(currentUser.getAccountId(), appId);
-        return ApiResponse.success("Webhook secret renouvelé. L'ancien secret est révoqué. Conservez la nouvelle valeur affichée.", response);
-    }
-
-    // 6. Supprimer (soft delete) une application
+    // 5. Supprimer (soft delete) une application
     @DeleteMapping("/{appId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(

@@ -57,7 +57,7 @@ public class Application {
     @Column(name = "webhook_url", length = 500)
     private String webhookUrl;
 
-    @Column(name = "webhook_secret", nullable = false, length = 255)
+    @Column(name = "webhook_secret", length = 255)
     private String webhookSecret;
 
     @Column(name = "success_url", length = 500)

@@ -20,6 +20,7 @@ import com.sharepay.aggregator.shared.gateway.PaymentGatewayRegistry;
 import com.sharepay.aggregator.shared.gateway.dto.GatewayPayOutRequest;
 import com.sharepay.aggregator.shared.gateway.dto.GatewayPayOutResponse;
 import com.sharepay.aggregator.modules.payment.service.FeeCalculatorService;
+import com.sharepay.aggregator.modules.webhook.service.WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -42,6 +45,7 @@ public class PayOutServiceImpl implements PayOutService {
     private final ApplicationRepository applicationRepository;
     private final PaymentGatewayRegistry gatewayRegistry;
     private final FeeCalculatorService feeCalculatorService;
+    private final WebhookService webhookService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -111,6 +115,7 @@ public class PayOutServiceImpl implements PayOutService {
 
         tx.setProviderTransactionId(gwResponse.getProviderTransactionId());
         transactionOutRepository.save(tx);
+        webhookService.dispatchEvent(application, "payout.created", payOutData(tx));
 
         log.info("Payout créé : {} (app: {}, provider: {}, montant: {} {}, providerTxId: {})",
                 reference, application.getId(), provider.getCode(),
@@ -173,6 +178,25 @@ public class PayOutServiceImpl implements PayOutService {
         byte[] bytes = new byte[6];
         secureRandom.nextBytes(bytes);
         return prefix + "-" + HexFormat.of().formatHex(bytes).toUpperCase();
+    }
+
+    private Map<String, Object> payOutData(TransactionOut tx) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("reference",         tx.getReference());
+        m.put("status",            tx.getStatus().name());
+        m.put("amount",            tx.getAmount());
+        m.put("currency",          tx.getCurrency());
+        m.put("feeAmount",         tx.getFeeAmount());
+        m.put("netAmount",         tx.getNetAmount());
+        m.put("paymentMethod",     tx.getPaymentProvider() != null ? tx.getPaymentProvider().getCode() : null);
+        m.put("beneficiaryAccount", tx.getBeneficiaryAccount());
+        m.put("beneficiaryName",   tx.getBeneficiaryName());
+        m.put("beneficiaryEmail",  tx.getBeneficiaryEmail());
+        m.put("merchantReference", tx.getMerchantReference());
+        m.put("description",       tx.getDescription());
+        m.put("createdAt",         tx.getCreatedAt());
+        m.put("updatedAt",         tx.getUpdatedAt());
+        return m;
     }
 
     private PayOutStatusResponse toStatusResponse(TransactionOut tx) {

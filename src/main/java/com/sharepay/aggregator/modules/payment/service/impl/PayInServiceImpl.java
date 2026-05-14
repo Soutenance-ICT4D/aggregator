@@ -21,6 +21,7 @@ import com.sharepay.aggregator.shared.gateway.PaymentGatewayRegistry;
 import com.sharepay.aggregator.shared.gateway.dto.GatewayPayInRequest;
 import com.sharepay.aggregator.shared.gateway.dto.GatewayPayInResponse;
 import com.sharepay.aggregator.modules.payment.service.FeeCalculatorService;
+import com.sharepay.aggregator.modules.webhook.service.WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,6 +48,7 @@ public class PayInServiceImpl implements PayInService {
     private final ApiKeyRepository apiKeyRepository;
     private final PaymentGatewayRegistry gatewayRegistry;
     private final FeeCalculatorService feeCalculatorService;
+    private final WebhookService webhookService;
 
     @Value("${app.checkout-base-url}")
     private String checkoutBaseUrl;
@@ -80,6 +84,7 @@ public class PayInServiceImpl implements PayInService {
                 .build();
 
         transactionInRepository.save(tx);
+        webhookService.dispatchEvent(application, "payment.created", payInData(tx));
         log.info("Checkout créé : {} (app: {})", reference, application.getId());
 
         return CheckoutResponse.builder()
@@ -148,6 +153,7 @@ public class PayInServiceImpl implements PayInService {
 
         tx.setProviderTransactionId(gwResponse.getProviderTransactionId());
         transactionInRepository.save(tx);
+        webhookService.dispatchEvent(application, "payment.created", payInData(tx));
 
         log.info("Charge créé : {} (app: {}, provider: {}, montant: {} {}, providerTxId: {})",
                 reference, application.getId(), provider.getCode(),
@@ -235,6 +241,26 @@ public class PayInServiceImpl implements PayInService {
                 .payerName(tx.getPayerName())
                 .payerEmail(tx.getPayerEmail())
                 .build();
+    }
+
+    private Map<String, Object> payInData(TransactionIn tx) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("reference",        tx.getReference());
+        m.put("type",             tx.getType().name());
+        m.put("status",           tx.getStatus().name());
+        m.put("amount",           tx.getAmount());
+        m.put("currency",         tx.getCurrency());
+        m.put("feeAmount",        tx.getFeeAmount());
+        m.put("netAmount",        tx.getNetAmount());
+        m.put("paymentMethod",    tx.getPaymentProvider() != null ? tx.getPaymentProvider().getCode() : null);
+        m.put("payerAccount",     tx.getPayerAccount());
+        m.put("payerName",        tx.getPayerName());
+        m.put("payerEmail",       tx.getPayerEmail());
+        m.put("merchantReference", tx.getMerchantReference());
+        m.put("description",      tx.getDescription());
+        m.put("createdAt",        tx.getCreatedAt());
+        m.put("updatedAt",        tx.getUpdatedAt());
+        return m;
     }
 
     private PayInStatusResponse toStatusResponse(TransactionIn tx) {

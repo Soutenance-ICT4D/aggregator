@@ -13,5 +13,4 @@ public interface ApplicationService {
     ApplicationResponse getApplication(UUID userId, UUID appId);
     ApplicationResponse updateApplication(UUID userId, UUID appId, UpdateApplicationRequest request);
     void deleteApplication(UUID userId, UUID appId);
-    ApplicationResponse rotateWebhookSecret(UUID userId, UUID appId);
 }

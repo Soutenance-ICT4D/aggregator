@@ -12,7 +12,12 @@ import java.util.UUID;
 public interface WebhookService {
     WebhookConfigResponse getConfig(UUID apiKeyId);
     WebhookConfigResponse updateConfig(UUID apiKeyId, UpdateWebhookRequest request);
+
+    /** Test via API Key auth (path programmatique). */
     TestWebhookResponse testWebhook(UUID apiKeyId, TestWebhookRequest request);
+
+    /** Test via JWT auth (dashboard merchant) — l'Application est déjà résolue par l'appelant. */
+    TestWebhookResponse testWebhookForApp(Application app, TestWebhookRequest request);
 
     /**
      * Envoie un événement webhook à l'application concernée.

@@ -12,6 +12,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -134,25 +135,45 @@ public class TransactionStatusScheduler {
     // ─────────────────────────────────────────────────────────────────────────
 
     private Map<String, Object> payInData(TransactionIn tx) {
-        return Map.of(
-            "reference", tx.getReference(),
-            "type",      tx.getType().name(),
-            "status",    tx.getStatus().name(),
-            "amount",    tx.getAmount(),
-            "currency",  tx.getCurrency(),
-            "feeAmount", tx.getFeeAmount(),
-            "netAmount", tx.getNetAmount()
-        );
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("reference",        tx.getReference());
+        m.put("type",             tx.getType().name());
+        m.put("status",           tx.getStatus().name());
+        m.put("amount",           tx.getAmount());
+        m.put("currency",         tx.getCurrency());
+        m.put("feeAmount",        tx.getFeeAmount());
+        m.put("netAmount",        tx.getNetAmount());
+        m.put("paymentMethod",    tx.getPaymentProvider() != null ? tx.getPaymentProvider().getCode() : null);
+        m.put("payerAccount",     tx.getPayerAccount());
+        m.put("payerName",        tx.getPayerName());
+        m.put("payerEmail",       tx.getPayerEmail());
+        m.put("merchantReference", tx.getMerchantReference());
+        m.put("description",      tx.getDescription());
+        m.put("createdAt",        tx.getCreatedAt());
+        m.put("updatedAt",        tx.getUpdatedAt());
+        m.put("failureCode",      tx.getFailureCode());
+        m.put("failureReason",    tx.getFailureReason());
+        return m;
     }
 
     private Map<String, Object> payOutData(TransactionOut tx) {
-        return Map.of(
-            "reference", tx.getReference(),
-            "status",    tx.getStatus().name(),
-            "amount",    tx.getAmount(),
-            "currency",  tx.getCurrency(),
-            "feeAmount", tx.getFeeAmount(),
-            "netAmount", tx.getNetAmount()
-        );
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("reference",         tx.getReference());
+        m.put("status",            tx.getStatus().name());
+        m.put("amount",            tx.getAmount());
+        m.put("currency",          tx.getCurrency());
+        m.put("feeAmount",         tx.getFeeAmount());
+        m.put("netAmount",         tx.getNetAmount());
+        m.put("paymentMethod",     tx.getPaymentProvider() != null ? tx.getPaymentProvider().getCode() : null);
+        m.put("beneficiaryAccount", tx.getBeneficiaryAccount());
+        m.put("beneficiaryName",   tx.getBeneficiaryName());
+        m.put("beneficiaryEmail",  tx.getBeneficiaryEmail());
+        m.put("merchantReference", tx.getMerchantReference());
+        m.put("description",       tx.getDescription());
+        m.put("createdAt",         tx.getCreatedAt());
+        m.put("updatedAt",         tx.getUpdatedAt());
+        m.put("failureCode",       tx.getFailureCode());
+        m.put("failureReason",     tx.getFailureReason());
+        return m;
     }
 }

@@ -20,8 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.sharepay.aggregator.modules.apps.model.ApiKey;
 import com.sharepay.aggregator.shared.constant.AppStatus;
 
-import java.security.SecureRandom;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,14 +30,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ApplicationServiceImpl implements ApplicationService {
 
-    private static final String WEBHOOK_SECRET_PREFIX = "whsec_";
-    private static final int WEBHOOK_SECRET_BYTES = 32; // 64 hex chars
-
     private final ApplicationRepository applicationRepository;
     private final ApiKeyRepository apiKeyRepository;
     private final UserRepository userRepository;
     private final FundCollectionRepository fundCollectionRepository;
-    private final SecureRandom secureRandom = new SecureRandom();
 
     @Override
     @Transactional
@@ -55,10 +49,6 @@ public class ApplicationServiceImpl implements ApplicationService {
             );
         }
 
-        // 3. Générer le webhook secret (valeur brute stockée en clair — nécessaire pour signer les webhooks côté serveur)
-        String webhookSecret = generateWebhookSecret();
-
-        // 4. Créer l'application
         Application application = Application.builder()
                 .user(user)
                 .name(request.getName())
@@ -68,7 +58,6 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .themeColor(request.getThemeColor())
                 .currency(request.getCurrency() != null ? request.getCurrency() : "XAF")
                 .webhookUrl(request.getWebhookUrl())
-                .webhookSecret(webhookSecret)
                 .successUrl(request.getSuccessUrl())
                 .cancelUrl(request.getCancelUrl())
                 .build();
@@ -76,8 +65,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         application = applicationRepository.save(application);
         log.info("Application '{}' créée pour l'utilisateur {}", application.getName(), userId);
 
-        // Le secret est retourné une seule fois ici — il ne sera plus accessible après cet appel
-        return toResponse(application, webhookSecret);
+        return toResponse(application);
     }
 
     @Override
@@ -95,7 +83,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .collect(Collectors.toMap(k -> k.getApplication().getId(), k -> k));
 
         return apps.stream()
-                .map(app -> toResponse(app, null, activeKeyByAppId.get(app.getId())))
+                .map(app -> toResponse(app, activeKeyByAppId.get(app.getId())))
                 .toList();
     }
 
@@ -158,29 +146,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     @Transactional
-    public ApplicationResponse rotateWebhookSecret(UUID userId, UUID appId) {
-        User user = userRepository.getReferenceById(userId);
-
-        Application application = applicationRepository
-                .findByIdAndUserAndStatusNot(appId, user, AppStatus.DELETED)
-                .orElseThrow(() -> new BusinessException(
-                        "Application non trouvée",
-                        HttpStatus.NOT_FOUND,
-                        "APP_NOT_FOUND"
-                ));
-
-        String newWebhookSecret = generateWebhookSecret();
-        application.setWebhookSecret(newWebhookSecret);
-        applicationRepository.save(application);
-
-        log.info("Webhook secret renouvelé pour l'application '{}' (user {})", application.getName(), userId);
-
-        // Le nouveau secret est retourné une seule fois — il ne sera plus accessible après cet appel
-        return toResponse(application, newWebhookSecret);
-    }
-
-    @Override
-    @Transactional
     public void deleteApplication(UUID userId, UUID appId) {
         User user = userRepository.getReferenceById(userId);
 
@@ -202,17 +167,15 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     private ApplicationResponse toResponse(Application app) {
-        // Appel unitaire (get, update, rotate…) : on accepte la requête supplémentaire
         ApiKey activeKey = apiKeyRepository.findByApplicationAndIsActiveTrue(app).orElse(null);
-        return toResponse(app, null, activeKey);
+        return toResponse(app, activeKey);
     }
 
-    private ApplicationResponse toResponse(Application app, String plainTextWebhookSecret) {
-        ApiKey activeKey = apiKeyRepository.findByApplicationAndIsActiveTrue(app).orElse(null);
-        return toResponse(app, plainTextWebhookSecret, activeKey);
-    }
+    private ApplicationResponse toResponse(Application app, ApiKey activeKey) {
+        String secretPrefix = app.getWebhookSecret() != null && app.getWebhookSecret().length() > 14
+                ? app.getWebhookSecret().substring(0, 14)
+                : null;
 
-    private ApplicationResponse toResponse(Application app, String plainTextWebhookSecret, ApiKey activeKey) {
         ApplicationResponse.ApplicationResponseBuilder builder = ApplicationResponse.builder()
                 .id(app.getId())
                 .name(app.getName())
@@ -222,7 +185,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .themeColor(app.getThemeColor())
                 .currency(app.getCurrency())
                 .webhookUrl(app.getWebhookUrl())
-                .plainTextWebhookSecret(plainTextWebhookSecret)
+                .webhookSecretPrefix(secretPrefix)
                 .successUrl(app.getSuccessUrl())
                 .cancelUrl(app.getCancelUrl())
                 .status(app.getStatus())
@@ -235,11 +198,5 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         return builder.build();
-    }
-
-    private String generateWebhookSecret() {
-        byte[] bytes = new byte[WEBHOOK_SECRET_BYTES];
-        secureRandom.nextBytes(bytes);
-        return WEBHOOK_SECRET_PREFIX + HexFormat.of().formatHex(bytes);
     }
 }

@@ -17,7 +17,7 @@ import java.util.UUID;
 @JsonPropertyOrder({
         "id", "name", "description", "status", "currency",
         "themeColor", "logoUrl", "websiteUrl",
-        "webhookUrl", "plainTextWebhookSecret", "successUrl", "cancelUrl",
+        "webhookUrl", "webhookSecretPrefix", "successUrl", "cancelUrl",
         "activeKeyPrefix", "activeKeyEnvironment",
         "createdAt", "updatedAt"
 })
@@ -52,11 +52,10 @@ public class ApplicationResponse {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(
-            description = "Secret webhook en clair. Retourné **une seule fois** à la création ou à la rotation. " +
-                    "À stocker immédiatement — utilisez-le pour vérifier la signature HMAC-SHA256 des webhooks entrants.",
+            description = "Préfixe masqué du secret webhook actuel. Null si aucun secret n'a été configuré.",
             example = "whsec_a1b2c3d4e5f6..."
     )
-    private String plainTextWebhookSecret;
+    private String webhookSecretPrefix;
 
     @Schema(description = "URL de succès")
     private String successUrl;
