@@ -65,6 +65,8 @@ public class PayInServiceImpl implements PayInService {
 
         String reference    = generateReference("PI");
         String sessionToken = generateSessionToken();
+        String cancelURL = (request.getCancelUrl() == null || request.getCancelUrl().isEmpty()) ? application.getCancelUrl() : request.getCancelUrl();
+        String successURL = (request.getSuccessUrl() == null || request.getSuccessUrl().isEmpty()) ? application.getSuccessUrl() : request.getSuccessUrl();
 
         TransactionIn tx = TransactionIn.builder()
                 .reference(reference)
@@ -78,8 +80,8 @@ public class PayInServiceImpl implements PayInService {
                 .netAmount(request.getAmount())
                 .description(request.getDescription())
                 .merchantReference(request.getMerchantReference())
-                .successUrl(request.getSuccessUrl())
-                .cancelUrl(request.getCancelUrl())
+                .successUrl(successURL)
+                .cancelUrl(cancelURL)
                 .status(TransactionStatus.PENDING)
                 .build();
 

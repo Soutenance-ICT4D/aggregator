@@ -1,0 +1,33 @@
+services:
+  backend:
+    container_name: sharepay-backend
+
+    build:
+      context: .
+
+    env_file:
+      - .env
+
+    environment:
+      SPRING_SERVER_PORT: ${SPRING_SERVER_PORT}
+
+      # Redirige DB_HOST vers l'hôte Docker (remplace localhost du .env)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:${DB_PORT:-5432}/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+
+    ports:
+      - "${SPRING_SERVER_PORT}:${SPRING_SERVER_PORT}"
+
+    restart: unless-stopped
+
+    extra_hosts:
+      # Permet au container Docker d'accéder au PostgreSQL du serveur hôte
+      - "host.docker.internal:host-gateway"
+
+    networks:
+      - sharepay-network
+
+networks:
+  sharepay-network:
+    driver: bridge

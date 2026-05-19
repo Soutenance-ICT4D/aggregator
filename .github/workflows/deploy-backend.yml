@@ -1,0 +1,28 @@
+name: Deploy Sharepay Backend
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  deploy-sharepay-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy Sharepay Backend to server via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            cd ~/apps/sharepay/backend
+            git pull origin prod
+            docker compose down
+            docker compose up -d --build
+            echo "✅ Sharepay Backend déployé avec succès !"
