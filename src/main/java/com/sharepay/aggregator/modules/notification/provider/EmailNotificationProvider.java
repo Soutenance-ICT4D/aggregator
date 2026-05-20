@@ -1,17 +1,13 @@
 package com.sharepay.aggregator.modules.notification.provider;
 
-import com.sendgrid.Method;
-import com.sendgrid.Request;
-import com.sendgrid.Response;
-import com.sendgrid.SendGrid;
-import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
-import com.sendgrid.helpers.mail.objects.Email;
 import com.sharepay.aggregator.modules.notification.constant.NotificationType;
 import com.sharepay.aggregator.modules.notification.dto.NotificationMessage;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -21,12 +17,10 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 @RequiredArgsConstructor
 public class EmailNotificationProvider implements NotificationProvider {
 
-    @Value("${sendgrid.api-key}")
-    private String sendGridApiKey;
-
     @Value("${app.mail.from}")
     private String senderEmail;
 
+    private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
 
     @Override
@@ -44,25 +38,15 @@ public class EmailNotificationProvider implements NotificationProvider {
             }
             String htmlContent = templateEngine.process("email/" + templateName, context);
 
-            Mail mail = new Mail(
-                    new Email(senderEmail),
-                    message.getSubject(),
-                    new Email(message.getRecipient()),
-                    new Content("text/html", htmlContent)
-            );
+            MimeMessage mime = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
+            helper.setFrom(senderEmail);
+            helper.setTo(message.getRecipient());
+            helper.setSubject(message.getSubject());
+            helper.setText(htmlContent, true);
 
-            Request request = new Request();
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-
-            Response response = new SendGrid(sendGridApiKey).api(request);
-
-            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
-                log.info("Email envoyé avec succès à {} (status {})", message.getRecipient(), response.getStatusCode());
-            } else {
-                log.error("Erreur SendGrid {} pour {} : {}", response.getStatusCode(), message.getRecipient(), response.getBody());
-            }
+            mailSender.send(mime);
+            log.info("Email envoyé avec succès à {}", message.getRecipient());
 
         } catch (Exception e) {
             log.error("Erreur lors de l'envoi de l'email à {}", message.getRecipient(), e);
