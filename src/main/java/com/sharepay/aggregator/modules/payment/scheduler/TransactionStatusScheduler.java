@@ -63,6 +63,49 @@ public class TransactionStatusScheduler {
         payOuts.forEach(this::refreshPayOut);
     }
 
+    @Scheduled(fixedDelay = 60_000)
+    public void expireStuckPayIns() {
+        List<TransactionIn> stuck = persistenceHelper.loadStuckPendingPayIns();
+        if (stuck.isEmpty()) return;
+
+        log.warn("[Scheduler] {} pay-in(s) sans providerTransactionId depuis >15 min — marqués FAILED", stuck.size());
+        stuck.forEach(tx -> {
+            try {
+                persistenceHelper.savePayInStuck(tx);
+                if (tx.getSessionToken() != null) {
+                    checkoutEventPublisher.publish(tx.getSessionToken(), "FAILED", "Aucune réponse du provider.");
+                }
+                webhookService.dispatchEvent(tx.getApplication(), "payment.failed", payInData(tx));
+                log.warn("[Scheduler] Pay-in {} → FAILED (GATEWAY_NO_RESPONSE)", tx.getReference());
+            } catch (OptimisticLockingFailureException e) {
+                log.warn("[Scheduler] Pay-in stuck {} déjà traité.", tx.getReference());
+            } catch (Exception e) {
+                log.error("[Scheduler] Erreur expiration stuck pay-in {} : {}", tx.getReference(), e.getMessage());
+            }
+        });
+    }
+
+    @Scheduled(fixedDelay = 60_000)
+    public void expireStuckPayOuts() {
+        List<TransactionOut> stuck = persistenceHelper.loadStuckPendingPayOuts();
+        if (stuck.isEmpty()) return;
+
+        log.warn("[Scheduler] {} pay-out(s) sans providerTransactionId depuis >15 min — marqués FAILED", stuck.size());
+        stuck.forEach(tx -> {
+            try {
+                persistenceHelper.savePayOutStuck(tx);
+                if (tx.getApplication() != null) {
+                    webhookService.dispatchEvent(tx.getApplication(), "payout.failed", payOutData(tx));
+                }
+                log.warn("[Scheduler] Pay-out {} → FAILED (GATEWAY_NO_RESPONSE)", tx.getReference());
+            } catch (OptimisticLockingFailureException e) {
+                log.warn("[Scheduler] Pay-out stuck {} déjà traité.", tx.getReference());
+            } catch (Exception e) {
+                log.error("[Scheduler] Erreur expiration stuck pay-out {} : {}", tx.getReference(), e.getMessage());
+            }
+        });
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
 
     private void refreshPayIn(TransactionIn tx) {
@@ -110,17 +153,23 @@ public class TransactionStatusScheduler {
             switch (response.getStatus()) {
                 case "SUCCESS" -> {
                     persistenceHelper.savePayOutSuccess(tx);
-                    webhookService.dispatchEvent(tx.getApplication(), "payout.success", payOutData(tx));
+                    if (tx.getApplication() != null) {
+                        webhookService.dispatchEvent(tx.getApplication(), "payout.success", payOutData(tx));
+                    }
                     log.info("[Scheduler] Pay-out {} → SUCCESS", tx.getReference());
                 }
                 case "FAILED" -> {
                     persistenceHelper.savePayOutFailed(tx, "PROVIDER_FAILURE", response.getMessage());
-                    webhookService.dispatchEvent(tx.getApplication(), "payout.failed", payOutData(tx));
+                    if (tx.getApplication() != null) {
+                        webhookService.dispatchEvent(tx.getApplication(), "payout.failed", payOutData(tx));
+                    }
                     log.info("[Scheduler] Pay-out {} → FAILED", tx.getReference());
                 }
                 case "CANCELLED" -> {
                     persistenceHelper.savePayOutCancelled(tx, response.getMessage());
-                    webhookService.dispatchEvent(tx.getApplication(), "payout.cancelled", payOutData(tx));
+                    if (tx.getApplication() != null) {
+                        webhookService.dispatchEvent(tx.getApplication(), "payout.cancelled", payOutData(tx));
+                    }
                     log.info("[Scheduler] Pay-out {} → CANCELLED", tx.getReference());
                 }
                 default -> log.debug("[Scheduler] Pay-out {} toujours PENDING", tx.getReference());
