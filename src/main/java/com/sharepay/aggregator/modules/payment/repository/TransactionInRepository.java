@@ -81,6 +81,26 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
             @Param("maxAge") OffsetDateTime maxAge
     );
 
+    /**
+     * Transactions PENDING sans providerTransactionId depuis plus de maxAge :
+     * le gateway n'a jamais répondu, on ne peut pas les poller — on les expire tôt.
+     * Exclut les transactions déjà expirées (gérées par findExpiredPending).
+     */
+    @Query("""
+            SELECT t FROM TransactionIn t
+            JOIN FETCH t.application a
+            JOIN FETCH a.user
+            LEFT JOIN FETCH t.paymentProvider
+            WHERE t.status = 'PENDING'
+              AND t.providerTransactionId IS NULL
+              AND t.createdAt < :maxAge
+              AND (t.expiresAt IS NULL OR t.expiresAt > :now)
+            """)
+    List<TransactionIn> findStuckPendingWithDetails(
+            @Param("maxAge") OffsetDateTime maxAge,
+            @Param("now")    OffsetDateTime now
+    );
+
     /** Charge une transaction avec son application pour la page checkout. */
     @Query("""
             SELECT t FROM TransactionIn t

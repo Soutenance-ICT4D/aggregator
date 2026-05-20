@@ -1,5 +1,6 @@
 package com.sharepay.aggregator.modules.payment.model;
 
+import com.sharepay.aggregator.modules.account.model.User;
 import com.sharepay.aggregator.modules.apps.model.Application;
 import com.sharepay.aggregator.shared.constant.TransactionStatus;
 import jakarta.persistence.*;
@@ -35,7 +36,11 @@ public class TransactionOut {
     private String reference;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "application_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "application_id")
     private Application application;
 
     @ManyToOne(fetch = FetchType.LAZY)

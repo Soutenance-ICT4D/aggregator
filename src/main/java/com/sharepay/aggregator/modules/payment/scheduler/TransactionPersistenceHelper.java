@@ -6,7 +6,9 @@ import com.sharepay.aggregator.modules.payment.repository.TransactionInRepositor
 import com.sharepay.aggregator.modules.payment.repository.TransactionOutRepository;
 import com.sharepay.aggregator.modules.payment.repository.UserBalanceRepository;
 import com.sharepay.aggregator.shared.constant.TransactionStatus;
+import com.sharepay.aggregator.shared.events.payment.PayInSuccessEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,9 +24,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TransactionPersistenceHelper {
 
-    private final TransactionInRepository transactionInRepository;
+    private final TransactionInRepository  transactionInRepository;
     private final TransactionOutRepository transactionOutRepository;
-    private final UserBalanceRepository userBalanceRepository;
+    private final UserBalanceRepository    userBalanceRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public List<TransactionIn> loadPendingPayIns() {
@@ -45,7 +48,8 @@ public class TransactionPersistenceHelper {
         tx.setStatus(TransactionStatus.SUCCESS);
         transactionInRepository.save(tx);
         UUID userId = tx.getApplication().getUser().getId();
-        userBalanceRepository.creditAvailableAmount(userId, tx.getCurrency(), tx.getNetAmount());
+        userBalanceRepository.upsertCreditAvailableAmount(userId, tx.getCurrency(), tx.getNetAmount());
+        eventPublisher.publishEvent(new PayInSuccessEvent(this, userId, tx.getNetAmount(), tx.getCurrency()));
     }
 
     @Transactional
@@ -68,7 +72,7 @@ public class TransactionPersistenceHelper {
     public void savePayOutSuccess(TransactionOut tx) {
         tx.setStatus(TransactionStatus.SUCCESS);
         transactionOutRepository.save(tx);
-        UUID userId = tx.getApplication().getUser().getId();
+        UUID userId = tx.getUser().getId();
         long totalDebit = tx.getAmount() + tx.getFeeAmount();
         userBalanceRepository.decrementPendingAmount(userId, tx.getCurrency(), totalDebit);
     }
@@ -79,7 +83,7 @@ public class TransactionPersistenceHelper {
         tx.setFailureCode(code);
         tx.setFailureReason(reason);
         transactionOutRepository.save(tx);
-        UUID userId = tx.getApplication().getUser().getId();
+        UUID userId = tx.getUser().getId();
         long totalDebit = tx.getAmount() + tx.getFeeAmount();
         userBalanceRepository.rollbackPendingToAvailable(userId, tx.getCurrency(), totalDebit);
     }
@@ -105,8 +109,39 @@ public class TransactionPersistenceHelper {
         tx.setFailureCode("CANCELLED");
         tx.setFailureReason(reason);
         transactionOutRepository.save(tx);
-        UUID userId = tx.getApplication().getUser().getId();
+        UUID userId = tx.getUser().getId();
         long totalDebit = tx.getAmount() + tx.getFeeAmount();
         userBalanceRepository.rollbackPendingToAvailable(userId, tx.getCurrency(), totalDebit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionOut> loadStuckPendingPayOuts() {
+        return transactionOutRepository.findStuckPendingWithDetails(OffsetDateTime.now().minusMinutes(15));
+    }
+
+    @Transactional
+    public void savePayOutStuck(TransactionOut tx) {
+        tx.setStatus(TransactionStatus.FAILED);
+        tx.setFailureCode("GATEWAY_NO_RESPONSE");
+        tx.setFailureReason("Aucune confirmation du provider après 15 minutes.");
+        transactionOutRepository.save(tx);
+        UUID userId = tx.getUser().getId();
+        long totalDebit = tx.getAmount() + tx.getFeeAmount();
+        userBalanceRepository.rollbackPendingToAvailable(userId, tx.getCurrency(), totalDebit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionIn> loadStuckPendingPayIns() {
+        OffsetDateTime now    = OffsetDateTime.now();
+        OffsetDateTime maxAge = now.minusMinutes(15);
+        return transactionInRepository.findStuckPendingWithDetails(maxAge, now);
+    }
+
+    @Transactional
+    public void savePayInStuck(TransactionIn tx) {
+        tx.setStatus(TransactionStatus.FAILED);
+        tx.setFailureCode("GATEWAY_NO_RESPONSE");
+        tx.setFailureReason("Aucune réponse du provider après 15 minutes.");
+        transactionInRepository.save(tx);
     }
 }

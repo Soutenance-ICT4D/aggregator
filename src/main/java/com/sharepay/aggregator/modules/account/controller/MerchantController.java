@@ -9,8 +9,6 @@ import com.sharepay.aggregator.modules.account.dto.response.TransactionChartResp
 import com.sharepay.aggregator.modules.account.dto.response.TransactionSummaryResponse;
 import com.sharepay.aggregator.modules.account.dto.response.UserBalanceResponse;
 import com.sharepay.aggregator.modules.account.service.MerchantService;
-import com.sharepay.aggregator.modules.payment.dto.request.TransferRequest;
-import com.sharepay.aggregator.modules.payment.dto.response.TransferResponse;
 import com.sharepay.aggregator.shared.constant.ChartGroupBy;
 import com.sharepay.aggregator.shared.constant.ChartInterval;
 import com.sharepay.aggregator.shared.constant.TransactionInType;
@@ -158,17 +156,4 @@ public class MerchantController {
         return ApiResponse.success(merchantService.getWithdrawalProviders());
     }
 
-    @PostMapping("/withdraw")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(
-            summary = "Initier un retrait depuis le dashboard",
-            description = "Crée un retrait (payout) depuis le solde disponible du marchand. " +
-                    "Utilise la première application active du marchand."
-    )
-    public ApiResponse<TransferResponse> withdraw(
-            @AuthenticationPrincipal AuthentificatedUser currentUser,
-            @Valid @RequestBody TransferRequest request
-    ) {
-        return ApiResponse.success(merchantService.initiateWithdrawal(currentUser.getAccountId(), request));
-    }
 }

@@ -1,10 +1,10 @@
 package com.sharepay.aggregator.modules.payment.service.impl;
 
+import com.sharepay.aggregator.modules.account.model.User;
+import com.sharepay.aggregator.modules.account.repository.UserRepository;
 import com.sharepay.aggregator.modules.apps.model.ApiKey;
 import com.sharepay.aggregator.modules.apps.model.Application;
 import com.sharepay.aggregator.modules.apps.repository.ApiKeyRepository;
-import com.sharepay.aggregator.modules.apps.repository.ApplicationRepository;
-import com.sharepay.aggregator.shared.constant.AppStatus;
 import com.sharepay.aggregator.modules.payment.dto.request.TransferRequest;
 import com.sharepay.aggregator.modules.payment.dto.response.PayOutStatusResponse;
 import com.sharepay.aggregator.modules.payment.dto.response.TransferResponse;
@@ -41,8 +41,8 @@ public class PayOutServiceImpl implements PayOutService {
     private final TransactionOutRepository transactionOutRepository;
     private final PaymentProviderRepository paymentProviderRepository;
     private final UserBalanceRepository userBalanceRepository;
+    private final UserRepository userRepository;
     private final ApiKeyRepository apiKeyRepository;
-    private final ApplicationRepository applicationRepository;
     private final PaymentGatewayRegistry gatewayRegistry;
     private final FeeCalculatorService feeCalculatorService;
     private final WebhookService webhookService;
@@ -56,19 +56,52 @@ public class PayOutServiceImpl implements PayOutService {
     @Override
     @Transactional
     public TransferResponse createTransfer(UUID apiKeyId, TransferRequest request) {
-        return doTransfer(resolveApplication(apiKeyId), request);
+        ApiKey apiKey = apiKeyRepository.findById(apiKeyId)
+                .orElseThrow(() -> new BusinessException("Clé API introuvable.", HttpStatus.UNAUTHORIZED, "API_KEY_INVALID"));
+        Application application = apiKey.getApplication();
+        return doTransfer(application.getUser(), application, request);
     }
 
+    /** Retrait depuis le dashboard marchand — pas de webhook. */
     @Override
     @Transactional
     public TransferResponse createTransferByUserId(UUID userId, TransferRequest request) {
-        Application application = applicationRepository
-                .findFirstByUser_IdAndStatusNotOrderByCreatedAtDesc(userId, AppStatus.DELETED)
-                .orElseThrow(() -> new BusinessException("Aucune application active.", HttpStatus.BAD_REQUEST, "NO_APPLICATION"));
-        return doTransfer(application, request);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Utilisateur introuvable.", HttpStatus.NOT_FOUND, "USER_NOT_FOUND"));
+        return doTransfer(user, null, request);
     }
 
-    private TransferResponse doTransfer(Application application, TransferRequest request) {
+    /** Retrait automatique : frais déduits du gross (solde à vider), bénéficiaire reçoit gross - fee. */
+    @Override
+    @Transactional
+    public TransferResponse createAutoWithdrawal(UUID userId, String providerCode,
+                                                  String beneficiaryAccount, String beneficiaryName,
+                                                  long gross, String currency, String description) {
+        PaymentProvider provider = resolveProvider(providerCode);
+
+        long amount = feeCalculatorService.computeNetFromGross(provider, gross);
+        if (amount <= 0) {
+            throw new BusinessException(
+                    "Montant trop faible après déduction des frais de retrait.",
+                    HttpStatus.BAD_REQUEST, "AMOUNT_TOO_SMALL");
+        }
+        validateAmount(provider, amount, currency);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Utilisateur introuvable.", HttpStatus.NOT_FOUND, "USER_NOT_FOUND"));
+
+        TransferRequest request = new TransferRequest();
+        request.setAmount(amount);
+        request.setCurrency(currency);
+        request.setPaymentMethod(providerCode);
+        request.setBeneficiaryAccount(beneficiaryAccount);
+        request.setBeneficiaryName(beneficiaryName);
+        request.setDescription(description);
+
+        return doTransfer(user, null, request);
+    }
+
+    private TransferResponse doTransfer(User user, Application application, TransferRequest request) {
         PaymentProvider provider = resolveProvider(request.getPaymentMethod());
 
         validateAmount(provider, request.getAmount(), request.getCurrency());
@@ -77,7 +110,7 @@ public class PayOutServiceImpl implements PayOutService {
         long totalDebit = request.getAmount() + feeAmount;
 
         int updated = userBalanceRepository.moveAvailableToPending(
-                application.getUser().getId(), request.getCurrency(), totalDebit);
+                user.getId(), request.getCurrency(), totalDebit);
         if (updated == 0) {
             throw new BusinessException("Solde disponible insuffisant.", HttpStatus.CONFLICT, "INSUFFICIENT_BALANCE");
         }
@@ -86,6 +119,7 @@ public class PayOutServiceImpl implements PayOutService {
 
         TransactionOut tx = TransactionOut.builder()
                 .reference(reference)
+                .user(user)
                 .application(application)
                 .paymentProvider(provider)
                 .currency(request.getCurrency())
@@ -115,11 +149,16 @@ public class PayOutServiceImpl implements PayOutService {
 
         tx.setProviderTransactionId(gwResponse.getProviderTransactionId());
         transactionOutRepository.save(tx);
-        webhookService.dispatchEvent(application, "payout.created", payOutData(tx));
 
-        log.info("Payout créé : {} (app: {}, provider: {}, montant: {} {}, providerTxId: {})",
-                reference, application.getId(), provider.getCode(),
-                request.getAmount(), request.getCurrency(), gwResponse.getProviderTransactionId());
+        if (application != null) {
+            webhookService.dispatchEvent(application, "payout.created", payOutData(tx));
+        }
+
+        log.info("Payout créé : {} (user: {}, app: {}, provider: {}, montant: {} {}, providerTxId: {})",
+                reference, user.getId(),
+                application != null ? application.getId() : "—",
+                provider.getCode(), request.getAmount(), request.getCurrency(),
+                gwResponse.getProviderTransactionId());
 
         return TransferResponse.builder()
                 .reference(reference)
@@ -141,10 +180,11 @@ public class PayOutServiceImpl implements PayOutService {
     @Override
     @Transactional(readOnly = true)
     public PayOutStatusResponse checkStatus(UUID apiKeyId, String reference) {
-        Application application = resolveApplication(apiKeyId);
+        ApiKey apiKey = apiKeyRepository.findById(apiKeyId)
+                .orElseThrow(() -> new BusinessException("Clé API introuvable.", HttpStatus.UNAUTHORIZED, "API_KEY_INVALID"));
 
         TransactionOut tx = transactionOutRepository
-                .findByReferenceAndApplication_Id(reference, application.getId())
+                .findByReferenceAndApplication_Id(reference, apiKey.getApplication().getId())
                 .orElseThrow(() -> new BusinessException("Payout introuvable.", HttpStatus.NOT_FOUND, "TRANSACTION_NOT_FOUND"));
 
         return toStatusResponse(tx);
@@ -153,12 +193,6 @@ public class PayOutServiceImpl implements PayOutService {
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers privés
     // ─────────────────────────────────────────────────────────────────────────
-
-    private Application resolveApplication(UUID apiKeyId) {
-        ApiKey apiKey = apiKeyRepository.findById(apiKeyId)
-                .orElseThrow(() -> new BusinessException("Clé API introuvable.", HttpStatus.UNAUTHORIZED, "API_KEY_INVALID"));
-        return apiKey.getApplication();
-    }
 
     private PaymentProvider resolveProvider(String code) {
         return paymentProviderRepository.findByCode(code)

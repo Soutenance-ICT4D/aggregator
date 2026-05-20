@@ -66,6 +66,22 @@ public interface UserBalanceRepository extends JpaRepository<UserBalance, UUID> 
                               @Param("currency") String currency,
                               @Param("amount") long amount);
 
+    /**
+     * Crédite le solde disponible, en créant la ligne si elle n'existe pas.
+     * Utilise un UPSERT natif PostgreSQL pour garantir l'atomicité.
+     */
+    @Modifying
+    @Query(value = """
+            INSERT INTO user_balances (id, user_id, currency, available_amount, pending_amount, created_at, updated_at)
+            VALUES (gen_random_uuid(), :userId, :currency, :amount, 0, NOW(), NOW())
+            ON CONFLICT (user_id, currency) DO UPDATE
+            SET available_amount = user_balances.available_amount + EXCLUDED.available_amount,
+                updated_at = NOW()
+            """, nativeQuery = true)
+    void upsertCreditAvailableAmount(@Param("userId") UUID userId,
+                                     @Param("currency") String currency,
+                                     @Param("amount") long amount);
+
     /** Décrémente le montant en attente lors d'un pay-out confirmé (atomique). */
     @Modifying
     @Query("""

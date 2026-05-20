@@ -28,11 +28,23 @@ public interface TransactionOutRepository extends JpaRepository<TransactionOut, 
     /** Charge les transactions PENDING avec toutes les associations nécessaires au scheduler. */
     @Query("""
             SELECT t FROM TransactionOut t
-            JOIN FETCH t.application a
-            JOIN FETCH a.user
+            JOIN FETCH t.user
+            LEFT JOIN FETCH t.application
             LEFT JOIN FETCH t.paymentProvider
             WHERE t.status = 'PENDING'
               AND t.providerTransactionId IS NOT NULL
             """)
     List<TransactionOut> findPendingWithDetails();
+
+    /** Charge les transactions PENDING sans providerTransactionId depuis plus de :maxAge (gateway non confirmé). */
+    @Query("""
+            SELECT t FROM TransactionOut t
+            JOIN FETCH t.user
+            LEFT JOIN FETCH t.application
+            LEFT JOIN FETCH t.paymentProvider
+            WHERE t.status = 'PENDING'
+              AND t.providerTransactionId IS NULL
+              AND t.createdAt < :maxAge
+            """)
+    List<TransactionOut> findStuckPendingWithDetails(@org.springframework.data.repository.query.Param("maxAge") java.time.OffsetDateTime maxAge);
 }

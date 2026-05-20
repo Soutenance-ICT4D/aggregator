@@ -23,4 +23,24 @@ public class FeeCalculatorService {
         }
         return fee.longValue();
     }
+
+    /**
+     * Calcule le montant NET à envoyer au bénéficiaire quand on veut débiter exactement
+     * {@code gross} du solde (frais inclus dans gross, non ajoutés par-dessus).
+     *
+     * Formule : fee = net * rate/100 + fixed  →  net = (gross - fixed) * 100 / (100 + rate)
+     */
+    public long computeNetFromGross(PaymentProvider provider, long gross) {
+        BigDecimal rate  = provider.getFeePercentage() != null ? provider.getFeePercentage() : BigDecimal.ZERO;
+        long       fixed = provider.getFeeFixed()      != null ? provider.getFeeFixed()      : 0L;
+
+        long grossMinusFixed = gross - fixed;
+        if (grossMinusFixed <= 0) return 0;
+
+        BigDecimal net = BigDecimal.valueOf(grossMinusFixed)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(100).add(rate), 0, RoundingMode.FLOOR);
+
+        return Math.max(0, net.longValue());
+    }
 }
