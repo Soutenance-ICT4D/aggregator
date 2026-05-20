@@ -8,6 +8,7 @@ import com.sharepay.aggregator.modules.payment.provider.CheckoutEventPublisher;
 import com.sharepay.aggregator.modules.payment.repository.PaymentProviderRepository;
 import com.sharepay.aggregator.modules.payment.service.FeeCalculatorService;
 import com.sharepay.aggregator.modules.payment.repository.TransactionInRepository;
+import com.sharepay.aggregator.modules.webhook.service.WebhookService;
 import com.sharepay.aggregator.shared.constant.FundCollectionStatus;
 import com.sharepay.aggregator.shared.constant.TransactionInType;
 import com.sharepay.aggregator.shared.constant.TransactionStatus;
@@ -26,7 +27,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Slf4j
@@ -41,6 +44,7 @@ public class PaymentPublicController {
     private final PaymentGatewayRegistry    gatewayRegistry;
     private final CheckoutEventPublisher    eventPublisher;
     private final FeeCalculatorService      feeCalculatorService;
+    private final WebhookService            webhookService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -231,6 +235,37 @@ public class PaymentPublicController {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Annulation côté client (bouton "Annuler" pendant l'attente de confirmation)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @PostMapping("/checkout/cancel")
+    @Transactional
+    public ApiResponse<Map<String, String>> cancelCheckout(@RequestParam String sessionToken) {
+        TransactionIn tx = transactionInRepository.findBySessionToken(sessionToken)
+                .orElseThrow(() -> new BusinessException("Session introuvable.", HttpStatus.NOT_FOUND, "SESSION_NOT_FOUND"));
+
+        if (tx.getStatus() != TransactionStatus.PENDING) {
+            throw new BusinessException("Cette transaction ne peut plus être annulée.", HttpStatus.CONFLICT, "TRANSACTION_NOT_CANCELLABLE");
+        }
+
+        tx.setStatus(TransactionStatus.CANCELLED);
+        tx.setFailureCode("USER_CANCELLED");
+        tx.setFailureReason("Annulé par l'utilisateur.");
+        transactionInRepository.save(tx);
+
+        eventPublisher.publish(sessionToken, "CANCELLED", "Paiement annulé.");
+        webhookService.dispatchEvent(tx.getApplication(), "payment.cancelled", cancelPayInData(tx));
+
+        log.info("[Checkout] Transaction {} annulée par l'utilisateur", tx.getReference());
+
+        Map<String, String> data = new HashMap<>();
+        if (tx.getCancelUrl() != null) {
+            data.put("cancelUrl", tx.getCancelUrl());
+        }
+        return ApiResponse.success("Paiement annulé.", data);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Statut (fallback polling si SSE non disponible)
     // Utilisé pour les deux flows : checkout et collect
     // ─────────────────────────────────────────────────────────────────────────
@@ -277,5 +312,21 @@ public class PaymentPublicController {
         byte[] bytes = new byte[16];
         secureRandom.nextBytes(bytes);
         return "cs_" + HexFormat.of().formatHex(bytes);
+    }
+
+    private Map<String, Object> cancelPayInData(TransactionIn tx) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("reference",        tx.getReference());
+        m.put("type",             tx.getType().name());
+        m.put("status",           tx.getStatus().name());
+        m.put("amount",           tx.getAmount());
+        m.put("currency",         tx.getCurrency());
+        m.put("feeAmount",        tx.getFeeAmount());
+        m.put("netAmount",        tx.getNetAmount());
+        m.put("failureCode",      tx.getFailureCode());
+        m.put("failureReason",    tx.getFailureReason());
+        m.put("createdAt",        tx.getCreatedAt());
+        m.put("updatedAt",        tx.getUpdatedAt());
+        return m;
     }
 }
