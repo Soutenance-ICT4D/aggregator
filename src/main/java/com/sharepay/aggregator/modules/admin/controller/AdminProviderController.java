@@ -18,7 +18,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/providers")
-@Tag(name = "Admin — Providers", description = "Gestion des opérateurs de paiement")
+@Tag(name = "Providers", description = "Gestion des opérateurs de paiement")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminProviderController {
 

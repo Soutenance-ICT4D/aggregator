@@ -15,7 +15,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/transactions")
-@Tag(name = "Admin — Transactions", description = "Vue globale des transactions pay-in")
+@Tag(name = "Admin Transactions", description = "Vue globale des transactions pay-in")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminTransactionController {
 

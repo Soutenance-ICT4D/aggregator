@@ -19,9 +19,9 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/apps/{appId}/api-keys")
+@RequestMapping("/api/v1/merchants/apps/{appId}/api-keys")
 @RequiredArgsConstructor
-@Tag(name = "API Keys", description = "Endpoints de gestion des clés API des applications marchandes")
+@Tag(name = "Clés API Marchand", description = "Endpoints de gestion des clés API des applications marchandes")
 @SecurityRequirement(name = "bearerAuth")
 public class ApiKeyController {
 
