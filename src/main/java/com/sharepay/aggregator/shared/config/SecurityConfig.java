@@ -65,7 +65,7 @@ public class SecurityConfig {
 
                         // ── Endpoints Merchant (JWT avec rôle MERCHANT requis) ──
                         .requestMatchers("/api/v1/merchants/**").hasRole("MERCHANT")
-                        .requestMatchers("/api/v1/apps/**").hasRole("MERCHANT")
+                        .requestMatchers("/api/v1/merchants/apps/**").hasRole("MERCHANT")
                         // ── Endpoints Admin (JWT avec rôle ADMIN requis) ──
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 

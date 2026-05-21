@@ -27,7 +27,7 @@ public class WebhookConfigResponse {
 
     @Schema(
             description = "Préfixe masqué du secret webhook (whsec_ + 8 premiers caractères). " +
-                    "Pour obtenir le secret complet, utilisez la rotation via PATCH /api/v1/apps/{appId}/webhook-secret/rotate.",
+                    "Pour obtenir le secret complet, utilisez la rotation via PATCH /api/v1/merchants/apps/{appId}/webhook-secret/rotate.",
             example = "whsec_a1b2c3d4..."
     )
     private String webhookSecretPrefix;

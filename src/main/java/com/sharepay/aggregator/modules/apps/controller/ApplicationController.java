@@ -19,9 +19,9 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/apps")
+@RequestMapping("/api/v1/merchants/apps")
 @RequiredArgsConstructor
-@Tag(name = "Applications", description = "Gestion des applications marchandes")
+@Tag(name = "Applications Marchand", description = "Gestion des applications marchandes")
 @SecurityRequirement(name = "bearerAuth")
 public class ApplicationController {
 

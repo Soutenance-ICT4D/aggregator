@@ -22,14 +22,14 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "Collecte de fonds", description = "Gestion des collectes de fonds marchandes")
+@Tag(name = "Collecte de fonds Marchand", description = "Gestion des collectes de fonds marchandes")
 @SecurityRequirement(name = "bearerAuth")
 public class FundCollectionController {
 
     private final FundCollectionService fundCollectionService;
 
     // 1. Créer une collecte pour une application donnée
-    @PostMapping("/api/v1/apps/{applicationId}/fund-collections")
+    @PostMapping("/api/v1/merchants/apps/{applicationId}/fund-collections")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
             summary = "Créer une collecte de fonds",
@@ -47,7 +47,7 @@ public class FundCollectionController {
     }
 
     // 2. Lister les collectes de l'utilisateur (toutes apps ou filtrées par app)
-    @GetMapping("/api/v1/fund-collections")
+    @GetMapping("/api/v1/merchants/fund-collections")
     @Operation(
             summary = "Lister les collectes de fonds",
             description = "Retourne toutes les collectes du marchand. " +
@@ -65,7 +65,7 @@ public class FundCollectionController {
     }
 
     // 3. Détail d'une collecte
-    @GetMapping("/api/v1/fund-collections/{collectionId}")
+    @GetMapping("/api/v1/merchants/fund-collections/{collectionId}")
     @Operation(
             summary = "Détail d'une collecte",
             description = "Retourne les informations complètes d'une collecte appartenant au marchand."
@@ -80,7 +80,7 @@ public class FundCollectionController {
     }
 
     // 4. Mettre à jour partiellement une collecte (ACTIVE uniquement)
-    @PatchMapping("/api/v1/fund-collections/{collectionId}")
+    @PatchMapping("/api/v1/merchants/fund-collections/{collectionId}")
     @Operation(
             summary = "Mettre à jour une collecte",
             description = "Mise à jour partielle (PATCH) des champs d'une collecte. " +
@@ -97,7 +97,7 @@ public class FundCollectionController {
     }
 
     // 5. Clôturer une collecte
-    @PatchMapping("/api/v1/fund-collections/{collectionId}/close")
+    @PatchMapping("/api/v1/merchants/fund-collections/{collectionId}/close")
     @Operation(
             summary = "Clôturer une collecte",
             description = "Passe la collecte au statut CLOSED. " +
@@ -113,7 +113,7 @@ public class FundCollectionController {
     }
 
     // 6. Réouvrir une collecte
-    @PatchMapping("/api/v1/fund-collections/{collectionId}/reopen")
+    @PatchMapping("/api/v1/merchants/fund-collections/{collectionId}/reopen")
     @Operation(
             summary = "Réouvrir une collecte",
             description = "Passe la collecte de CLOSED à ACTIVE. " +
@@ -143,7 +143,7 @@ public class FundCollectionController {
     }
 
     // 8. Supprimer (soft delete) une collecte
-    @DeleteMapping("/api/v1/fund-collections/{collectionId}")
+    @DeleteMapping("/api/v1/merchants/fund-collections/{collectionId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(
             summary = "Supprimer une collecte",

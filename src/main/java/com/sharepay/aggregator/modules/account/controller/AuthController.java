@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentification Marchand", description = "Endpoints d'authentification des marchands")
+@Tag(name = "Authentification", description = "Endpoints d'authentification")
 @io.swagger.v3.oas.annotations.security.SecurityRequirements()
 public class AuthController {
     

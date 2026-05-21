@@ -24,9 +24,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/apps/{appId}/webhook")
+@RequestMapping("/api/v1/merchants/apps/{appId}/webhook")
 @RequiredArgsConstructor
-@Tag(name = "Webhook", description = "Gestion de la configuration webhook d'une application (dashboard merchant)")
+@Tag(name = "Webhook Marchand", description = "Gestion de la configuration webhook d'une application (dashboard merchant)")
 @SecurityRequirement(name = "bearerAuth")
 public class AppWebhookController {
 

@@ -19,7 +19,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/staff")
-@Tag(name = "Admin — Staff", description = "Gestion des comptes admin et support")
+@Tag(name = "Support", description = "Gestion des comptes admin et support")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminStaffController {
 

@@ -19,7 +19,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/merchants")
-@Tag(name = "Admin — Marchands", description = "Gestion des comptes marchands")
+@Tag(name = "Marchands", description = "Gestion des comptes marchands")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminMerchantController {
 

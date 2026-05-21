@@ -1,8 +1,6 @@
 package com.sharepay.aggregator.modules.webhook.controller;
 
-import com.sharepay.aggregator.modules.webhook.dto.request.TestWebhookRequest;
 import com.sharepay.aggregator.modules.webhook.dto.request.UpdateWebhookRequest;
-import com.sharepay.aggregator.modules.webhook.dto.response.TestWebhookResponse;
 import com.sharepay.aggregator.modules.webhook.dto.response.WebhookConfigResponse;
 import com.sharepay.aggregator.modules.webhook.service.WebhookService;
 import com.sharepay.aggregator.shared.dto.ApiResponse;
@@ -29,7 +27,7 @@ public class WebhookController {
     @Operation(
             summary = "Consulter la configuration webhook",
             description = "Retourne l'URL et le préfixe masqué du secret webhook pour l'application liée à la clé API. " +
-                    "Pour obtenir le secret complet, utilisez la rotation via `POST /api/v1/apps/{appId}/webhook-secret/rotate`."
+                    "Pour obtenir le secret complet, utilisez la rotation via `POST /api/v1/merchants/apps/{appId}/webhook-secret/rotate`."
     )
     public ApiResponse<WebhookConfigResponse> getConfig(
             @AuthenticationPrincipal String apiKeyId
@@ -52,18 +50,4 @@ public class WebhookController {
         return ApiResponse.success("Configuration webhook mise à jour.", response);
     }
 
-    @PostMapping("/test")
-    @Operation(
-            summary = "Tester le webhook",
-            description = "Envoie un payload signé (`webhook.test`) vers l'URL configurée. " +
-                    "Le champ `data` est libre et permet de personnaliser le contenu envoyé. " +
-                    "Retourne le code HTTP de la réponse et indique si la livraison a réussi."
-    )
-    public ApiResponse<TestWebhookResponse> testWebhook(
-            @RequestBody(required = false) TestWebhookRequest request,
-            @AuthenticationPrincipal String apiKeyId
-    ) {
-        TestWebhookResponse response = webhookService.testWebhook(UUID.fromString(apiKeyId), request);
-        return ApiResponse.success("Webhook de test envoyé.", response);
-    }
 }

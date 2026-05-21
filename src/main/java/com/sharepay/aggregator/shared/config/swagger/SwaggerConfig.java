@@ -30,8 +30,8 @@ public class SwaggerConfig {
                         "/api/v1/auth/**",
                         "/api/v1/account/**",
                         "/api/v1/merchants/**",
-                        "/api/v1/apps/**",
-                        "/api/v1/fund-collections/**",
+                        "/api/v1/merchants/apps/**",
+                        "/api/v1/merchants/fund-collections/**",
                         "/api/v1/admin/**",
                         "/api/v1/support/**"
                 )
@@ -50,13 +50,19 @@ public class SwaggerConfig {
                     // Ordre logique des tags dans l'UI (de haut en bas)
                     openApi.tags(List.of(
                             new Tag().name("Health Check").description("Endpoints pour vérifier l'état du système"),
-                            new Tag().name("Authentification Marchand").description("Endpoints d'authentification des marchands"),
+                            new Tag().name("Authentification").description("Endpoints d'authentification des marchands"),
                             new Tag().name("Compte Marchand").description("Endpoints de gestion du compte marchand"),
-                            new Tag().name("Applications").description("Endpoints de gestion des applications marchandes"),
-                            new Tag().name("API Keys").description("Endpoints de gestion des clés API des applications marchandes"),
-                            new Tag().name("Collecte de fonds").description("Endpoints de gestion des collectes de fonds"),
-                            new Tag().name("Administration").description("Endpoints de gestion des utilisateurs et du système"),
-                            new Tag().name("Support").description("Endpoints d'outils de support client")
+                            new Tag().name("Transactions Marchand").description("Consultation des transactions du marchand connecté"),
+                            new Tag().name("Applications Marchand").description("Endpoints de gestion des applications marchandes"),
+                            new Tag().name("Clés API Marchand").description("Endpoints de gestion des clés API des applications marchandes"),
+                            new Tag().name("Webhook Marchand").description("Gestion de la configuration webhook d'une application"),
+                            new Tag().name("Collecte de fonds Marchand").description("Endpoints de gestion des collectes de fonds"),
+                            new Tag().name("Retraits Marchand").description("Gestion des comptes et de la configuration de retrait"),
+                            new Tag().name("Support").description("Endpoints d'outils de support client"),
+                            new Tag().name("Marchands").description("Gestion des comptes marchands"),
+                            new Tag().name("Providers").description("Gestion des opérateurs de paiement"),
+                            new Tag().name("Support").description("Gestion des comptes admin et support"),
+                            new Tag().name("Admin Transactions").description("Vue globale des transactions pay-in")
                     ));
 
                     // Schéma de sécurité : JWT Bearer
