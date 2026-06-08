@@ -334,11 +334,6 @@ public class MerchantServiceImpl implements MerchantService {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private String maskAccount(String account) {
-        if (account == null || account.length() <= 4) return account;
-        return "••••" + account.substring(account.length() - 4);
-    }
-
     private TransactionSummaryResponse toSummary(TransactionIn t) {
         return TransactionSummaryResponse.builder()
                 .id(t.getId())
@@ -352,7 +347,7 @@ public class MerchantServiceImpl implements MerchantService {
                 .status(t.getStatus())
                 .description(t.getDescription())
                 .provider(t.getPaymentProvider() != null ? t.getPaymentProvider().getName() : null)
-                .payerAccount(maskAccount(t.getPayerAccount()))
+                .payerAccount(t.getPayerAccount())
                 .payerName(t.getPayerName())
                 .payerEmail(t.getPayerEmail())
                 .appName(t.getApplication() != null ? t.getApplication().getName() : null)
