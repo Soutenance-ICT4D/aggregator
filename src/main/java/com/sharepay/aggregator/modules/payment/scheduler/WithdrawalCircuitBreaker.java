@@ -47,7 +47,7 @@ public class WithdrawalCircuitBreaker {
             cfg.setLastErrorMessage(truncate(errorMessage, 500));
 
             if (failures >= MAX_FAILURES) {
-                log.warn("[CircuitBreaker] Config {} ({}) — {} échecs consécutifs → repassage en MANUAL",
+                log.warn("[CircuitBreaker] Config {} ({}) - {} échecs consécutifs → repassage en MANUAL",
                         configId, cfg.getMode(), failures);
                 cfg.setMode(WithdrawalMode.MANUAL);
                 cfg.setAccount(null);

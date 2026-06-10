@@ -35,7 +35,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         "/api/v1/auth/resend-verify-email-code",   new int[]{3,  900}
     );
 
-    // Durée maximale de fenêtre (en ms) — utilisée pour le nettoyage périodique.
+    // Durée maximale de fenêtre (en ms) - utilisée pour le nettoyage périodique.
     private static final long MAX_WINDOW_MS = 900_000L;
 
     // Fenêtre glissante : "ip:path" -> file de timestamps (ms).
@@ -80,7 +80,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         int remaining = tryConsume(key, maxRequests, windowMs);
 
         if (remaining < 0) {
-            log.warn("Rate limit exceeded — IP={} path={}", clientIp, path);
+            log.warn("Rate limit exceeded - IP={} path={}", clientIp, path);
             rejectRequest(response, maxRequests, rule[1]);
             return;
         }

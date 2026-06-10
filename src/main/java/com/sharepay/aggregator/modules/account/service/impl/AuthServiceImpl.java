@@ -367,7 +367,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
-        // Sortie silencieuse si l'email n'existe pas — évite l'énumération d'emails
+        // Sortie silencieuse si l'email n'existe pas - évite l'énumération d'emails
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);
         if (user == null) {
             log.debug("Forgot password requested for unknown email: {}", request.getEmail());

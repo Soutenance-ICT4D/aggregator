@@ -51,7 +51,7 @@ public class PaymentPublicController {
     private static final int CHECKOUT_EXPIRY_MINUTES = 30;
 
     // ─────────────────────────────────────────────────────────────────────────
-    // SSE — le browser s'abonne ici après soumission d'un formulaire
+    // SSE - le browser s'abonne ici après soumission d'un formulaire
     // Utilisé pour les deux flows : checkout et collect
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -120,7 +120,7 @@ public class PaymentPublicController {
         tx.setProviderTransactionId(gwResponse.getProviderTransactionId());
         transactionInRepository.save(tx);
 
-        log.info("[Checkout] Paiement initié — ref: {}, provider: {}, montant: {} {}",
+        log.info("[Checkout] Paiement initié - ref: {}, provider: {}, montant: {} {}",
                 tx.getReference(), providerCode, tx.getAmount(), tx.getCurrency());
 
         return ApiResponse.success("Paiement initié, en attente de confirmation.",
@@ -227,7 +227,7 @@ public class PaymentPublicController {
         tx.setProviderTransactionId(gwResponse.getProviderTransactionId());
         transactionInRepository.save(tx);
 
-        log.info("[Collect] Paiement initié — ref: {}, slug: {}, provider: {}, montant: {} {}",
+        log.info("[Collect] Paiement initié - ref: {}, slug: {}, provider: {}, montant: {} {}",
                 reference, slug, providerCode, finalAmount, collection.getCurrency());
 
         return ApiResponse.success("Paiement initié, en attente de confirmation.",

@@ -16,7 +16,7 @@ public interface WebhookService {
     /** Test via API Key auth (path programmatique). */
     TestWebhookResponse testWebhook(UUID apiKeyId, TestWebhookRequest request);
 
-    /** Test via JWT auth (dashboard merchant) — l'Application est déjà résolue par l'appelant. */
+    /** Test via JWT auth (dashboard merchant) - l'Application est déjà résolue par l'appelant. */
     TestWebhookResponse testWebhookForApp(Application app, TestWebhookRequest request);
 
     /**

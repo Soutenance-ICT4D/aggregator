@@ -112,7 +112,7 @@ public class MerchantServiceImpl implements MerchantService {
     // ── Helpers profil ────────────────────────────────────────────────────────
 
     private void validateAvatarDataUri(String avatarUrl) {
-        if (!avatarUrl.startsWith("data:")) return; // URL externe — pas de validation
+        if (!avatarUrl.startsWith("data:")) return; // URL externe - pas de validation
 
         boolean validPrefix = ALLOWED_AVATAR_PREFIXES.stream().anyMatch(avatarUrl::startsWith);
         if (!validPrefix) {

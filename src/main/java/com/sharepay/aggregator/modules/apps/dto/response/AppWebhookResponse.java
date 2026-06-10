@@ -37,7 +37,7 @@ public class AppWebhookResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(
             description = "Secret webhook en clair. Retourné **une seule fois** après une rotation. " +
-                    "À stocker immédiatement — utilisez-le pour vérifier la signature HMAC-SHA256 des webhooks entrants.",
+                    "À stocker immédiatement - utilisez-le pour vérifier la signature HMAC-SHA256 des webhooks entrants.",
             example = "whsec_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
     )
     private String plainTextWebhookSecret;

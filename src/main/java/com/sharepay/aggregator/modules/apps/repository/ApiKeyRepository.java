@@ -21,7 +21,7 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
     /** Clé active de l'application (une seule par application autorisée). */
     Optional<ApiKey> findByApplicationAndIsActiveTrue(Application application);
 
-    /** Clés actives pour une liste d'applications — une seule requête SQL pour éviter le N+1. */
+    /** Clés actives pour une liste d'applications - une seule requête SQL pour éviter le N+1. */
     List<ApiKey> findByApplicationInAndIsActiveTrue(List<Application> applications);
 
     /** Recherche par hash pour la validation lors des appels API. */

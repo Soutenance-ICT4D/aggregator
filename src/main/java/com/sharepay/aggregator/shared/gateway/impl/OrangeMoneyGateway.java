@@ -53,7 +53,7 @@ public class OrangeMoneyGateway implements PaymentGateway {
         );
 
         try {
-            log.info("[Orange] Initiation pay-in — orderId: {}, montant: {}", request.getReference(), request.getAmount());
+            log.info("[Orange] Initiation pay-in - orderId: {}, montant: {}", request.getReference(), request.getAmount());
 
             String raw = restClient.post()
                     .uri(props.getBaseUrl() + props.getPayinPath())
@@ -68,7 +68,7 @@ public class OrangeMoneyGateway implements PaymentGateway {
             JsonNode data = root.path("data");
             String providerTxId = data.path("id").asText(null);
 
-            log.info("[Orange] Réponse pay-in — status: {}, txId: {}", status, providerTxId);
+            log.info("[Orange] Réponse pay-in - status: {}, txId: {}", status, providerTxId);
 
             return GatewayPayInResponse.builder()
                     .providerTransactionId(providerTxId)
@@ -79,11 +79,11 @@ public class OrangeMoneyGateway implements PaymentGateway {
         } catch (BusinessException e) {
             throw e;
         } catch (RestClientException e) {
-            log.error("[Orange] Echec pay-in — orderId: {} — {}", request.getReference(), e.getMessage());
+            log.error("[Orange] Echec pay-in - orderId: {} - {}", request.getReference(), e.getMessage());
             throw new BusinessException("Echec de l'initiation du paiement Orange Money : " + e.getMessage(),
                     HttpStatus.BAD_GATEWAY, "ORANGE_GATEWAY_ERROR");
         } catch (Exception e) {
-            log.error("[Orange] Erreur inattendue pay-in — {}", e.getMessage());
+            log.error("[Orange] Erreur inattendue pay-in - {}", e.getMessage());
             throw new BusinessException("Erreur interne Orange Money gateway.", HttpStatus.INTERNAL_SERVER_ERROR, "ORANGE_INTERNAL_ERROR");
         }
     }
@@ -105,7 +105,7 @@ public class OrangeMoneyGateway implements PaymentGateway {
         );
 
         try {
-            log.info("[Orange] Initiation pay-out — orderId: {}, montant: {}", request.getReference(), request.getAmount());
+            log.info("[Orange] Initiation pay-out - orderId: {}, montant: {}", request.getReference(), request.getAmount());
 
             String raw = restClient.post()
                     .uri(props.getBaseUrl() + PAYOUT_PATH)
@@ -120,7 +120,7 @@ public class OrangeMoneyGateway implements PaymentGateway {
             JsonNode data = root.path("data");
             String providerTxId = data.path("id").asText(null);
 
-            log.info("[Orange] Réponse pay-out — txId: {}", providerTxId);
+            log.info("[Orange] Réponse pay-out - txId: {}", providerTxId);
 
             return GatewayPayOutResponse.builder()
                     .providerTransactionId(providerTxId)
@@ -131,11 +131,11 @@ public class OrangeMoneyGateway implements PaymentGateway {
         } catch (BusinessException e) {
             throw e;
         } catch (RestClientException e) {
-            log.error("[Orange] Echec pay-out — orderId: {} — {}", request.getReference(), e.getMessage());
+            log.error("[Orange] Echec pay-out - orderId: {} - {}", request.getReference(), e.getMessage());
             throw new BusinessException("Echec de l'initiation du virement Orange Money : " + e.getMessage(),
                     HttpStatus.BAD_GATEWAY, "ORANGE_GATEWAY_ERROR");
         } catch (Exception e) {
-            log.error("[Orange] Erreur inattendue pay-out — {}", e.getMessage());
+            log.error("[Orange] Erreur inattendue pay-out - {}", e.getMessage());
             throw new BusinessException("Erreur interne Orange Money gateway.", HttpStatus.INTERNAL_SERVER_ERROR, "ORANGE_INTERNAL_ERROR");
         }
     }
@@ -154,7 +154,7 @@ public class OrangeMoneyGateway implements PaymentGateway {
             String   status  = data.path("status").asText("PENDING");
             String   message = root.path("message").asText();
 
-            log.info("[Orange] checkStatus — txId: {}, status: {}", providerTransactionId, status);
+            log.info("[Orange] checkStatus - txId: {}, status: {}", providerTransactionId, status);
 
             return GatewayStatusResponse.builder()
                     .providerTransactionId(providerTransactionId)
@@ -163,7 +163,7 @@ public class OrangeMoneyGateway implements PaymentGateway {
                     .build();
 
         } catch (Exception e) {
-            log.error("[Orange] Erreur checkStatus — txId: {} — {}", providerTransactionId, e.getMessage());
+            log.error("[Orange] Erreur checkStatus - txId: {} - {}", providerTransactionId, e.getMessage());
             return GatewayStatusResponse.builder()
                     .providerTransactionId(providerTransactionId)
                     .status("PENDING")

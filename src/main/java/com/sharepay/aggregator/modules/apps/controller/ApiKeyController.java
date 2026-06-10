@@ -34,7 +34,7 @@ public class ApiKeyController {
             summary = "Créer une clé API",
             description = "Crée une clé API pour l'environnement spécifié. " +
                     "Une seule clé active par application est autorisée. " +
-                    "La valeur brute de la clé (plainTextKey) est retournée **une seule fois** — stockez-la immédiatement."
+                    "La valeur brute de la clé (plainTextKey) est retournée **une seule fois** - stockez-la immédiatement."
     )
     public ApiResponse<ApiKeyResponse> createApiKey(
             @PathVariable UUID appId,
@@ -80,7 +80,7 @@ public class ApiKeyController {
             summary = "Rotation de la clé API",
             description = "Révoque immédiatement la clé active de l'application " +
                     "et génère une nouvelle clé pour l'environnement spécifié. " +
-                    "La valeur brute de la nouvelle clé (plainTextKey) est retournée **une seule fois** — stockez-la immédiatement. " +
+                    "La valeur brute de la nouvelle clé (plainTextKey) est retournée **une seule fois** - stockez-la immédiatement. " +
                     "À utiliser en cas de compromission de clé."
     )
     public ApiResponse<ApiKeyResponse> rotateApiKey(

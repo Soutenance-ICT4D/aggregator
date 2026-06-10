@@ -68,7 +68,7 @@ public class SwaggerConfig {
                     // Schéma de sécurité : JWT Bearer
                     // Déclaré ici pour activer le bouton "Authorize" dans Swagger UI.
                     // Chaque controller sécurisé porte @SecurityRequirement(name = "bearerAuth")
-                    // individuellement — les endpoints publics (auth, register…) restent sans cadenas.
+                    // individuellement - les endpoints publics (auth, register…) restent sans cadenas.
                     openApi.getComponents().addSecuritySchemes("bearerAuth",
                             new SecurityScheme()
                                     .name("bearerAuth")
@@ -116,7 +116,7 @@ public class SwaggerConfig {
                     // Schéma de sécurité : API Key
                     // Déclaré ici pour activer le bouton "Authorize" dans Swagger UI.
                     // Chaque controller sécurisé porte @SecurityRequirement(name = "apiKeyAuth")
-                    // individuellement — les endpoints publics (/health…) restent sans cadenas.
+                    // individuellement - les endpoints publics (/health…) restent sans cadenas.
                     openApi.getComponents().addSecuritySchemes("apiKeyAuth",
                             new SecurityScheme()
                                     .name("X-API-KEY")

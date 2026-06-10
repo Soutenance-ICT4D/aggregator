@@ -53,7 +53,7 @@ public class MtnMomoGateway implements PaymentGateway {
         );
 
         try {
-            log.info("[MTN] Initiation pay-in — orderId: {}, montant: {}", request.getReference(), request.getAmount());
+            log.info("[MTN] Initiation pay-in - orderId: {}, montant: {}", request.getReference(), request.getAmount());
 
             String raw = restClient.post()
                     .uri(props.getBaseUrl() + props.getPayinPath())
@@ -68,7 +68,7 @@ public class MtnMomoGateway implements PaymentGateway {
             JsonNode data = root.path("data");
             String providerTxId = data.path("id").asText(null);
 
-            log.info("[MTN] Réponse pay-in — status: {}, txId: {}", status, providerTxId);
+            log.info("[MTN] Réponse pay-in - status: {}, txId: {}", status, providerTxId);
 
             return GatewayPayInResponse.builder()
                     .providerTransactionId(providerTxId)
@@ -79,11 +79,11 @@ public class MtnMomoGateway implements PaymentGateway {
         } catch (BusinessException e) {
             throw e;
         } catch (RestClientException e) {
-            log.error("[MTN] Echec pay-in — orderId: {} — {}", request.getReference(), e.getMessage());
+            log.error("[MTN] Echec pay-in - orderId: {} - {}", request.getReference(), e.getMessage());
             throw new BusinessException("Echec de l'initiation du paiement MTN MoMo : " + e.getMessage(),
                     HttpStatus.BAD_GATEWAY, "MTN_GATEWAY_ERROR");
         } catch (Exception e) {
-            log.error("[MTN] Erreur inattendue pay-in — {}", e.getMessage());
+            log.error("[MTN] Erreur inattendue pay-in - {}", e.getMessage());
             throw new BusinessException("Erreur interne MTN gateway.", HttpStatus.INTERNAL_SERVER_ERROR, "MTN_INTERNAL_ERROR");
         }
     }
@@ -105,7 +105,7 @@ public class MtnMomoGateway implements PaymentGateway {
         );
 
         try {
-            log.info("[MTN] Initiation pay-out — orderId: {}, montant: {}", request.getReference(), request.getAmount());
+            log.info("[MTN] Initiation pay-out - orderId: {}, montant: {}", request.getReference(), request.getAmount());
 
             String raw = restClient.post()
                     .uri(props.getBaseUrl() + PAYOUT_PATH)
@@ -120,7 +120,7 @@ public class MtnMomoGateway implements PaymentGateway {
             JsonNode data = root.path("data");
             String providerTxId = data.path("id").asText(null);
 
-            log.info("[MTN] Réponse pay-out — txId: {}", providerTxId);
+            log.info("[MTN] Réponse pay-out - txId: {}", providerTxId);
 
             return GatewayPayOutResponse.builder()
                     .providerTransactionId(providerTxId)
@@ -131,11 +131,11 @@ public class MtnMomoGateway implements PaymentGateway {
         } catch (BusinessException e) {
             throw e;
         } catch (RestClientException e) {
-            log.error("[MTN] Echec pay-out — orderId: {} — {}", request.getReference(), e.getMessage());
+            log.error("[MTN] Echec pay-out - orderId: {} - {}", request.getReference(), e.getMessage());
             throw new BusinessException("Echec de l'initiation du virement MTN MoMo : " + e.getMessage(),
                     HttpStatus.BAD_GATEWAY, "MTN_GATEWAY_ERROR");
         } catch (Exception e) {
-            log.error("[MTN] Erreur inattendue pay-out — {}", e.getMessage());
+            log.error("[MTN] Erreur inattendue pay-out - {}", e.getMessage());
             throw new BusinessException("Erreur interne MTN gateway.", HttpStatus.INTERNAL_SERVER_ERROR, "MTN_INTERNAL_ERROR");
         }
     }
@@ -154,7 +154,7 @@ public class MtnMomoGateway implements PaymentGateway {
             String   status = data.path("status").asText("PENDING");
             String   message = root.path("message").asText();
 
-            log.info("[MTN] checkStatus — txId: {}, status: {}", providerTransactionId, status);
+            log.info("[MTN] checkStatus - txId: {}, status: {}", providerTransactionId, status);
 
             return GatewayStatusResponse.builder()
                     .providerTransactionId(providerTransactionId)
@@ -163,7 +163,7 @@ public class MtnMomoGateway implements PaymentGateway {
                     .build();
 
         } catch (Exception e) {
-            log.error("[MTN] Erreur checkStatus — txId: {} — {}", providerTransactionId, e.getMessage());
+            log.error("[MTN] Erreur checkStatus - txId: {} - {}", providerTransactionId, e.getMessage());
             return GatewayStatusResponse.builder()
                     .providerTransactionId(providerTransactionId)
                     .status("PENDING")

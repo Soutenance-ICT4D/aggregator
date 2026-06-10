@@ -159,11 +159,11 @@
     <table class="details-table">
         <tr>
             <td class="label">Marchand</td>
-            <td class="value" th:text="${appName}">—</td>
+            <td class="value" th:text="${appName}">-</td>
         </tr>
         <tr th:if="${description != null and !#strings.isEmpty(description)}">
             <td class="label">Description</td>
-            <td class="value" th:text="${description}">—</td>
+            <td class="value" th:text="${description}">-</td>
         </tr>
         <tr>
             <td class="label">Référence</td>
@@ -171,7 +171,7 @@
         </tr>
         <tr th:if="${merchantReference != null and !#strings.isEmpty(merchantReference)}">
             <td class="label">Réf. Marchand</td>
-            <td class="value" th:text="${merchantReference}">—</td>
+            <td class="value" th:text="${merchantReference}">-</td>
         </tr>
         <tr>
             <td class="label">Statut</td>
@@ -179,12 +179,12 @@
         </tr>
         <tr th:if="${payerName != null and !#strings.isEmpty(payerName)}">
             <td class="label">Client</td>
-            <td class="value" th:text="${payerName}">—</td>
+            <td class="value" th:text="${payerName}">-</td>
         </tr>
         <tr th:if="${payerAccount != null and !#strings.isEmpty(payerAccount)}">
             <td class="label">Moyen</td>
             <td class="value"
-                th:text="${(providerName != null ? providerName + ' - ' : '') + payerAccount}">—</td>
+                th:text="${(providerName != null ? providerName + ' - ' : '') + payerAccount}">-</td>
         </tr>
     </table>
 

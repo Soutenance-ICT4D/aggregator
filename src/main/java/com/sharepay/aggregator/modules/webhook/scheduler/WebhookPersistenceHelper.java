@@ -15,7 +15,7 @@ import java.util.UUID;
 
 /**
  * Encapsule les opérations de persistance webhook dans des transactions courtes,
- * séparées des appels réseau — même pattern que TransactionPersistenceHelper.
+ * séparées des appels réseau - même pattern que TransactionPersistenceHelper.
  */
 @Component
 @RequiredArgsConstructor

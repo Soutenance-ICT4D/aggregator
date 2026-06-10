@@ -65,8 +65,8 @@ public class AppWebhookController {
     @Operation(
             summary = "Créer un webhook secret",
             description = "Génère un webhook secret pour la première fois. " +
-                    "La valeur brute (plainTextWebhookSecret) est retournée **une seule fois** — stockez-la immédiatement. " +
-                    "Retourne une erreur si un secret existe déjà — utilisez `/rotate` dans ce cas."
+                    "La valeur brute (plainTextWebhookSecret) est retournée **une seule fois** - stockez-la immédiatement. " +
+                    "Retourne une erreur si un secret existe déjà - utilisez `/rotate` dans ce cas."
     )
     public ApiResponse<AppWebhookResponse> createSecret(
             @PathVariable UUID appId,
@@ -80,8 +80,8 @@ public class AppWebhookController {
     @Operation(
             summary = "Rotation du webhook secret",
             description = "Remplace le secret actuel par un nouveau. L'ancien est immédiatement invalidé. " +
-                    "La valeur brute (plainTextWebhookSecret) est retournée **une seule fois** — stockez-la immédiatement. " +
-                    "Retourne une erreur si aucun secret n'existe — utilisez `POST /secret` d'abord."
+                    "La valeur brute (plainTextWebhookSecret) est retournée **une seule fois** - stockez-la immédiatement. " +
+                    "Retourne une erreur si aucun secret n'existe - utilisez `POST /secret` d'abord."
     )
     public ApiResponse<AppWebhookResponse> rotateSecret(
             @PathVariable UUID appId,
@@ -96,7 +96,7 @@ public class AppWebhookController {
     @Operation(
             summary = "Révoquer le webhook secret",
             description = "Supprime le secret webhook. Les webhooks seront toujours envoyés si une URL est configurée, " +
-                    "mais sans l'en-tête `X-Sharepay-Signature`. Cette action est irréversible — créez un nouveau secret via `POST /secret`."
+                    "mais sans l'en-tête `X-Sharepay-Signature`. Cette action est irréversible - créez un nouveau secret via `POST /secret`."
     )
     public void revokeSecret(
             @PathVariable UUID appId,
