@@ -54,20 +54,20 @@ public class WithdrawalAutoTriggerListener {
                     "Retrait automatique instantané"
             );
             circuitBreaker.recordSuccess(config.getId(), null);
-            log.info("[AutoWithdrawal] INSTANT déclenché — user: {}, ref: {}, gross: {} {}",
+            log.info("[AutoWithdrawal] INSTANT déclenché - user: {}, ref: {}, gross: {} {}",
                     event.getUserId(), result.getReference(), event.getNetAmount(), event.getCurrency());
         } catch (BusinessException e) {
             if ("AMOUNT_BELOW_MINIMUM".equals(e.getCode()) || "AMOUNT_TOO_SMALL".equals(e.getCode())) {
-                log.warn("[AutoWithdrawal] INSTANT — montant net après frais trop faible ({} {}), ignoré",
+                log.warn("[AutoWithdrawal] INSTANT - montant net après frais trop faible ({} {}), ignoré",
                         event.getNetAmount(), event.getCurrency());
                 return;
             }
             circuitBreaker.recordFailure(config.getId(), e.getMessage());
-            log.error("[AutoWithdrawal] INSTANT échoué — user: {} — [{}] {}",
+            log.error("[AutoWithdrawal] INSTANT échoué - user: {} - [{}] {}",
                     event.getUserId(), e.getCode(), e.getMessage());
         } catch (Exception e) {
             circuitBreaker.recordFailure(config.getId(), e.getMessage());
-            log.error("[AutoWithdrawal] INSTANT erreur inattendue — user: {} — {}",
+            log.error("[AutoWithdrawal] INSTANT erreur inattendue - user: {} - {}",
                     event.getUserId(), e.getMessage());
         }
     }

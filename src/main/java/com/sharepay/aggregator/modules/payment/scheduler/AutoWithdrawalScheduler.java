@@ -31,7 +31,7 @@ public class AutoWithdrawalScheduler {
         var configs = configRepository.findActiveByMode(WithdrawalMode.THRESHOLD);
         if (configs.isEmpty()) return;
 
-        log.info("[AutoWithdrawal] THRESHOLD — {} config(s) à vérifier", configs.size());
+        log.info("[AutoWithdrawal] THRESHOLD - {} config(s) à vérifier", configs.size());
         configs.forEach(this::triggerIfThresholdReached);
     }
 
@@ -41,7 +41,7 @@ public class AutoWithdrawalScheduler {
         var configs = configRepository.findActiveByMode(WithdrawalMode.PERIODIC);
         if (configs.isEmpty()) return;
 
-        log.info("[AutoWithdrawal] PERIODIC — {} config(s) à vérifier", configs.size());
+        log.info("[AutoWithdrawal] PERIODIC - {} config(s) à vérifier", configs.size());
         configs.forEach(this::triggerIfPeriodElapsed);
     }
 
@@ -62,18 +62,18 @@ public class AutoWithdrawalScheduler {
         try {
             String ref = executeAutoWithdrawal(config, amount, currency, "Retrait automatique par seuil");
             circuitBreaker.recordSuccess(config.getId(), null);
-            log.info("[AutoWithdrawal] THRESHOLD déclenché — user: {}, ref: {}, gross: {} {}",
+            log.info("[AutoWithdrawal] THRESHOLD déclenché - user: {}, ref: {}, gross: {} {}",
                     userId, ref, amount, currency);
         } catch (BusinessException e) {
             if ("AMOUNT_BELOW_MINIMUM".equals(e.getCode()) || "AMOUNT_TOO_SMALL".equals(e.getCode())) {
-                log.warn("[AutoWithdrawal] THRESHOLD — montant net après frais trop faible ({} {}), ignoré", amount, currency);
+                log.warn("[AutoWithdrawal] THRESHOLD - montant net après frais trop faible ({} {}), ignoré", amount, currency);
                 return;
             }
             circuitBreaker.recordFailure(config.getId(), e.getMessage());
-            log.error("[AutoWithdrawal] THRESHOLD échoué — user: {} — [{}] {}", userId, e.getCode(), e.getMessage());
+            log.error("[AutoWithdrawal] THRESHOLD échoué - user: {} - [{}] {}", userId, e.getCode(), e.getMessage());
         } catch (Exception e) {
             circuitBreaker.recordFailure(config.getId(), e.getMessage());
-            log.error("[AutoWithdrawal] THRESHOLD erreur inattendue — user: {} — {}", userId, e.getMessage());
+            log.error("[AutoWithdrawal] THRESHOLD erreur inattendue - user: {} - {}", userId, e.getMessage());
         }
     }
 
@@ -105,18 +105,18 @@ public class AutoWithdrawalScheduler {
         try {
             String ref = executeAutoWithdrawal(config, amount, currency, "Retrait automatique périodique");
             circuitBreaker.recordSuccess(config.getId(), now);
-            log.info("[AutoWithdrawal] PERIODIC ({}) déclenché — user: {}, ref: {}, gross: {} {}",
+            log.info("[AutoWithdrawal] PERIODIC ({}) déclenché - user: {}, ref: {}, gross: {} {}",
                     config.getPeriod(), userId, ref, amount, currency);
         } catch (BusinessException e) {
             if ("AMOUNT_BELOW_MINIMUM".equals(e.getCode()) || "AMOUNT_TOO_SMALL".equals(e.getCode())) {
-                log.warn("[AutoWithdrawal] PERIODIC — montant net après frais trop faible ({} {}), ignoré", amount, currency);
+                log.warn("[AutoWithdrawal] PERIODIC - montant net après frais trop faible ({} {}), ignoré", amount, currency);
                 return;
             }
             circuitBreaker.recordFailure(config.getId(), e.getMessage());
-            log.error("[AutoWithdrawal] PERIODIC échoué — user: {} — [{}] {}", userId, e.getCode(), e.getMessage());
+            log.error("[AutoWithdrawal] PERIODIC échoué - user: {} - [{}] {}", userId, e.getCode(), e.getMessage());
         } catch (Exception e) {
             circuitBreaker.recordFailure(config.getId(), e.getMessage());
-            log.error("[AutoWithdrawal] PERIODIC erreur inattendue — user: {} — {}", userId, e.getMessage());
+            log.error("[AutoWithdrawal] PERIODIC erreur inattendue - user: {} - {}", userId, e.getMessage());
         }
     }
 

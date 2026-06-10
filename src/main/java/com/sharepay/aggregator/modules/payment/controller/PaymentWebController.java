@@ -88,7 +88,7 @@ public class PaymentWebController {
         model.addAttribute("providers",
                 paymentProviderRepository.findByCurrencyAndIsActiveTrueOrderByNameAsc(tx.getCurrency()));
 
-        log.debug("[Checkout] Page affichée — sessionToken: {}, ref: {}", sessionToken, tx.getReference());
+        log.debug("[Checkout] Page affichée - sessionToken: {}, ref: {}", sessionToken, tx.getReference());
         return "checkout";
     }
 
@@ -134,7 +134,7 @@ public class PaymentWebController {
         model.addAttribute("providers",
                 paymentProviderRepository.findByCurrencyAndIsActiveTrueOrderByNameAsc(collection.getCurrency()));
 
-        log.debug("[Collect] Page affichée — slug: {}", slug);
+        log.debug("[Collect] Page affichée - slug: {}", slug);
         return "collect";
     }
 
@@ -170,7 +170,7 @@ public class PaymentWebController {
 
         byte[] pdf = ticketPdfService.generateReceiptPdf(vars);
 
-        log.info("[Ticket] Reçu PDF généré — ref: {}", reference);
+        log.info("[Ticket] Reçu PDF généré - ref: {}", reference);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,

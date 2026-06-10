@@ -68,7 +68,7 @@ public class TransactionStatusScheduler {
         List<TransactionIn> stuck = persistenceHelper.loadStuckPendingPayIns();
         if (stuck.isEmpty()) return;
 
-        log.warn("[Scheduler] {} pay-in(s) sans providerTransactionId depuis >15 min — marqués FAILED", stuck.size());
+        log.warn("[Scheduler] {} pay-in(s) sans providerTransactionId depuis >15 min - marqués FAILED", stuck.size());
         stuck.forEach(tx -> {
             try {
                 persistenceHelper.savePayInStuck(tx);
@@ -90,7 +90,7 @@ public class TransactionStatusScheduler {
         List<TransactionOut> stuck = persistenceHelper.loadStuckPendingPayOuts();
         if (stuck.isEmpty()) return;
 
-        log.warn("[Scheduler] {} pay-out(s) sans providerTransactionId depuis >15 min — marqués FAILED", stuck.size());
+        log.warn("[Scheduler] {} pay-out(s) sans providerTransactionId depuis >15 min - marqués FAILED", stuck.size());
         stuck.forEach(tx -> {
             try {
                 persistenceHelper.savePayOutStuck(tx);

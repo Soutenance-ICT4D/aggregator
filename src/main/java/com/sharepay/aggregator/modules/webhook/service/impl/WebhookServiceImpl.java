@@ -150,7 +150,7 @@ public class WebhookServiceImpl implements WebhookService {
     public void dispatchEvent(Application app, String eventName, Map<String, Object> data) {
         if (app.getWebhookUrl() == null || app.getWebhookUrl().isBlank()) return;
 
-        // Capture des champs avant la frontière async — l'entité peut être détachée ensuite
+        // Capture des champs avant la frontière async - l'entité peut être détachée ensuite
         UUID appId        = app.getId();
         String webhookUrl = app.getWebhookUrl();
         String secret     = app.getWebhookSecret();

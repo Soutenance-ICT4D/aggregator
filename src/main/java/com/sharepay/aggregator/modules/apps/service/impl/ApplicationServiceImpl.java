@@ -163,7 +163,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         fundCollectionRepository.softDeleteByApplicationId(appId);
         apiKeyRepository.deactivateByApplicationId(appId);
 
-        log.info("Application '{}' supprimée (soft delete) par l'utilisateur {} — collectes et clés API associées désactivées", application.getName(), userId);
+        log.info("Application '{}' supprimée (soft delete) par l'utilisateur {} - collectes et clés API associées désactivées", application.getName(), userId);
     }
 
     private ApplicationResponse toResponse(Application app) {

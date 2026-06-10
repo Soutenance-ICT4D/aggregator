@@ -16,7 +16,7 @@ public interface FundCollectionService {
     /**
      * Liste les collectes de l'utilisateur.
      * Si applicationId est fourni, filtre par application.
-     * Si status est fourni, filtre par statut exact — sinon exclut les DELETED.
+     * Si status est fourni, filtre par statut exact - sinon exclut les DELETED.
      */
     List<FundCollectionResponse> getCollections(UUID userId, UUID applicationId, FundCollectionStatus status);
 

@@ -33,7 +33,7 @@ public class CheckoutEventPublisher {
         emitter.onError(e       -> emitters.remove(sessionToken));
 
         emitters.put(sessionToken, emitter);
-        log.debug("[SSE] Connexion enregistrée — sessionToken: {}", sessionToken);
+        log.debug("[SSE] Connexion enregistrée - sessionToken: {}", sessionToken);
         return emitter;
     }
 
@@ -56,7 +56,7 @@ public class CheckoutEventPublisher {
                     .name("status-update")
                     .data(Map.of("status", status, "message", message != null ? message : "")));
 
-            log.info("[SSE] Événement publié — sessionToken: {}, status: {}", sessionToken, status);
+            log.info("[SSE] Événement publié - sessionToken: {}, status: {}", sessionToken, status);
 
             // Ferme la connexion dès que le statut est final
             if (!"PENDING".equals(status)) {

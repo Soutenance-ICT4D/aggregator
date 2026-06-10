@@ -1,4 +1,4 @@
--- PAYMENT PROVIDERS — données de référence
+-- PAYMENT PROVIDERS - données de référence
 -- Montants en XAF (unité de base, pas de centimes pour le FCFA)
 
 INSERT INTO payment_providers (code, name, type, country, currency, is_active, fee_percentage, fee_fixed, min_amount, max_amount)

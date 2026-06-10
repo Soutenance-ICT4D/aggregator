@@ -83,7 +83,7 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
 
     /**
      * Transactions PENDING sans providerTransactionId depuis plus de maxAge :
-     * le gateway n'a jamais répondu, on ne peut pas les poller — on les expire tôt.
+     * le gateway n'a jamais répondu, on ne peut pas les poller - on les expire tôt.
      * Exclut les transactions déjà expirées (gérées par findExpiredPending).
      */
     @Query("""

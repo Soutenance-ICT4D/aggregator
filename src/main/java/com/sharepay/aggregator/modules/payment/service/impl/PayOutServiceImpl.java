@@ -62,7 +62,7 @@ public class PayOutServiceImpl implements PayOutService {
         return doTransfer(application.getUser(), application, request);
     }
 
-    /** Retrait depuis le dashboard marchand — pas de webhook. */
+    /** Retrait depuis le dashboard marchand - pas de webhook. */
     @Override
     @Transactional
     public TransferResponse createTransferByUserId(UUID userId, TransferRequest request) {
@@ -156,7 +156,7 @@ public class PayOutServiceImpl implements PayOutService {
 
         log.info("Payout créé : {} (user: {}, app: {}, provider: {}, montant: {} {}, providerTxId: {})",
                 reference, user.getId(),
-                application != null ? application.getId() : "—",
+                application != null ? application.getId() : "-",
                 provider.getCode(), request.getAmount(), request.getCurrency(),
                 gwResponse.getProviderTransactionId());
 

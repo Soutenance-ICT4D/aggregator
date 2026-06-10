@@ -33,8 +33,8 @@ public class MerchantTransactionController {
                     Retourne les transactions pay-in du marchand connecté, paginées et filtrables.
                     - `page`   : numéro de page (0-based, défaut : 0)
                     - `size`   : nombre d'éléments par page (défaut : 20, max recommandé : 100)
-                    - `status` : filtre optionnel — `PENDING` | `SUCCESS` | `FAILED` | `CANCELLED` | `REFUNDED`
-                    - `type`   : filtre optionnel — `CHECKOUT` | `CHARGE` | `FUND_COLLECTION`
+                    - `status` : filtre optionnel - `PENDING` | `SUCCESS` | `FAILED` | `CANCELLED` | `REFUNDED`
+                    - `type`   : filtre optionnel - `CHECKOUT` | `CHARGE` | `FUND_COLLECTION`
                     """
     )
     public ApiResponse<PaginationResponse<TransactionSummaryResponse>> getTransactions(
