@@ -101,6 +101,16 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
             @Param("now")    OffsetDateTime now
     );
 
+    /** Charge une transaction par providerTransactionId avec ses associations (utilisé par le callback provider). */
+    @Query("""
+            SELECT t FROM TransactionIn t
+            JOIN FETCH t.application a
+            JOIN FETCH a.user
+            LEFT JOIN FETCH t.paymentProvider
+            WHERE t.providerTransactionId = :providerTransactionId
+            """)
+    Optional<TransactionIn> findByProviderTransactionIdWithDetails(@Param("providerTransactionId") String providerTransactionId);
+
     /** Charge une transaction avec son application pour la page checkout. */
     @Query("""
             SELECT t FROM TransactionIn t
