@@ -1,11 +1,13 @@
 package com.sharepay.aggregator.modules.payment.repository;
 
 import com.sharepay.aggregator.modules.payment.model.TransactionIn;
+import com.sharepay.aggregator.shared.constant.AppStatus;
 import com.sharepay.aggregator.shared.constant.TransactionInType;
 import com.sharepay.aggregator.shared.constant.TransactionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,7 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface TransactionInRepository extends JpaRepository<TransactionIn, UUID> {
+public interface TransactionInRepository extends JpaRepository<TransactionIn, UUID>, JpaSpecificationExecutor<TransactionIn> {
 
     Optional<TransactionIn> findByReference(String reference);
 
@@ -240,4 +242,21 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
             @Param("type") TransactionInType type,
             Pageable pageable
     );
+
+    /** Nombre total de pay-in du marchand (apps non supprimées). */
+    long countByApplication_User_IdAndApplication_StatusNot(UUID userId, AppStatus appStatus);
+
+    /** Nombre de pay-in par statut pour le marchand (apps non supprimées). */
+    long countByApplication_User_IdAndApplication_StatusNotAndStatus(UUID userId, AppStatus appStatus, TransactionStatus txStatus);
+
+    /** Détail d'une transaction pay-in appartenant au marchand (vérification d'ownership). */
+    @Query("""
+            SELECT t FROM TransactionIn t
+            LEFT JOIN FETCH t.paymentProvider
+            JOIN FETCH t.application a
+            WHERE t.id = :id
+              AND a.user.id = :userId
+              AND a.status <> 'DELETED'
+            """)
+    Optional<TransactionIn> findByIdForMerchant(@Param("id") UUID id, @Param("userId") UUID userId);
 }
