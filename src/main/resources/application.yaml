@@ -95,7 +95,7 @@ payment:
       app-space-key: ${PAYMENT_APP_SPACE_KEY}
       payin-path:    ${PAYMENT_PAYIN_PATH}
       status-path:   ${PAYMENT_STATUS_PATH}
-      callback-url:  ${MTN_CALLBACK_URL:http://localhost:8080/api/v1/provider-webhook/MTN_MOMO_CM}
+      callback-url:  ${MTN_CALLBACK_URL:http://localhost:8080/api/v1/public/provider-webhook/MTN_MOMO_CM}
 
     orange-money:
       base-url:      ${PAYMENT_BASE_URL}
@@ -103,7 +103,7 @@ payment:
       app-space-key: ${PAYMENT_APP_SPACE_KEY}
       payin-path:    ${PAYMENT_PAYIN_PATH}
       status-path:   ${PAYMENT_STATUS_PATH}
-      notif-url:     ${ORANGE_NOTIF_URL:http://localhost:8080/api/v1/provider-webhook/ORANGE_MONEY_CM}
+      notif-url:     ${ORANGE_NOTIF_URL:http://localhost:8080/api/v1/public/provider-webhook/ORANGE_MONEY_CM}
 
 # ── Configuration applicative ────────────────────────────────────────────────
 app:

@@ -49,6 +49,7 @@ public class MtnMomoGateway implements PaymentGateway {
                 "payment_method", PAYMENT_METHOD,
                 "order_id",       request.getReference(),
                 "amount",         String.valueOf(request.getAmount().longValue()),
+                "callback_url",   props.getCallbackUrl(),
                 "user_data",      Map.of("user_phone", sanitizePhone(request.getPayerAccount()))
         );
 

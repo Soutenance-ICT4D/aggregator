@@ -10,28 +10,41 @@ import com.sharepay.aggregator.modules.payment.dto.request.TransferRequest;
 import com.sharepay.aggregator.modules.payment.dto.response.TransferResponse;
 import com.sharepay.aggregator.modules.payment.model.PaymentProvider;
 import com.sharepay.aggregator.modules.payment.model.TransactionIn;
+import com.sharepay.aggregator.modules.payment.model.TransactionOut;
 import com.sharepay.aggregator.modules.payment.model.UserBalance;
 import com.sharepay.aggregator.modules.payment.repository.PaymentProviderRepository;
 import com.sharepay.aggregator.modules.payment.repository.TransactionInRepository;
+import com.sharepay.aggregator.modules.payment.repository.TransactionInSpec;
+import com.sharepay.aggregator.modules.payment.repository.TransactionOutRepository;
+import com.sharepay.aggregator.modules.payment.repository.TransactionOutSpec;
+import com.sharepay.aggregator.modules.account.dto.response.TransactionStatsResponse;
+import com.sharepay.aggregator.shared.constant.AppStatus;
 import com.sharepay.aggregator.modules.payment.repository.UserBalanceRepository;
 import com.sharepay.aggregator.modules.payment.service.PayOutService;
 import com.sharepay.aggregator.shared.constant.ChartGroupBy;
 import com.sharepay.aggregator.shared.constant.ChartInterval;
 import com.sharepay.aggregator.shared.constant.TransactionInType;
 import com.sharepay.aggregator.shared.constant.TransactionStatus;
+import com.sharepay.aggregator.shared.constant.TxChartCustomType;
+import com.sharepay.aggregator.shared.constant.TxChartInterval;
 import com.sharepay.aggregator.shared.dto.PaginationResponse;
 import com.sharepay.aggregator.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -44,6 +57,7 @@ public class MerchantServiceImpl implements MerchantService {
     private final UserRepository userRepository;
     private final UserBalanceRepository userBalanceRepository;
     private final TransactionInRepository transactionInRepository;
+    private final TransactionOutRepository transactionOutRepository;
     private final PaymentProviderRepository paymentProviderRepository;
     private final PayOutService payOutService;
     private final PasswordEncoder passwordEncoder;
@@ -379,5 +393,372 @@ public class MerchantServiceImpl implements MerchantService {
     @Transactional
     public TransferResponse initiateWithdrawal(UUID userId, TransferRequest request) {
         return payOutService.createTransferByUserId(userId, request);
+    }
+
+    // ── Transactions-in (nouveaux endpoints) ──────────────────────────────────
+
+    @Override
+    public TransactionStatsResponse getTransactionInStats(UUID userId) {
+        long total     = transactionInRepository.countByApplication_User_IdAndApplication_StatusNot(userId, AppStatus.DELETED);
+        long success   = transactionInRepository.countByApplication_User_IdAndApplication_StatusNotAndStatus(userId, AppStatus.DELETED, TransactionStatus.SUCCESS);
+        long pending   = transactionInRepository.countByApplication_User_IdAndApplication_StatusNotAndStatus(userId, AppStatus.DELETED, TransactionStatus.PENDING);
+        long failed    = transactionInRepository.countByApplication_User_IdAndApplication_StatusNotAndStatus(userId, AppStatus.DELETED, TransactionStatus.FAILED);
+        long cancelled = transactionInRepository.countByApplication_User_IdAndApplication_StatusNotAndStatus(userId, AppStatus.DELETED, TransactionStatus.CANCELLED);
+        return TransactionStatsResponse.builder()
+                .total(total).successCount(success).pendingCount(pending)
+                .failedCount(failed).cancelledCount(cancelled).build();
+    }
+
+    @Override
+    public PaginationResponse<TransactionSummaryResponse> getTransactionsIn(
+            UUID userId, int page, int size,
+            TransactionStatus status, TransactionInType type,
+            UUID appId, OffsetDateTime from, OffsetDateTime to
+    ) {
+        Page<TransactionIn> result = transactionInRepository.findAll(
+                TransactionInSpec.forMerchant(userId, status, type, appId, from, to),
+                PageRequest.of(page, Math.min(size, 100), Sort.by(Sort.Direction.DESC, "createdAt"))
+        );
+        return PaginationResponse.<TransactionSummaryResponse>builder()
+                .content(result.getContent().stream().map(this::toSummary).toList())
+                .page(result.getNumber())
+                .size(result.getSize())
+                .totalElements(result.getTotalElements())
+                .totalPages(result.getTotalPages())
+                .last(result.isLast())
+                .build();
+    }
+
+    @Override
+    public TransactionInDetailResponse getTransactionInDetail(UUID userId, UUID id) {
+        TransactionIn t = transactionInRepository.findByIdForMerchant(id, userId)
+                .orElseThrow(() -> new BusinessException(
+                        "Transaction introuvable", HttpStatus.NOT_FOUND, "TRANSACTION_NOT_FOUND"));
+        return TransactionInDetailResponse.builder()
+                .id(t.getId())
+                .reference(t.getReference())
+                .merchantReference(t.getMerchantReference())
+                .type(t.getType())
+                .amount(t.getAmount())
+                .feeAmount(t.getFeeAmount())
+                .netAmount(t.getNetAmount())
+                .currency(t.getCurrency())
+                .status(t.getStatus())
+                .description(t.getDescription())
+                .provider(t.getPaymentProvider() != null ? t.getPaymentProvider().getName() : null)
+                .providerTransactionId(t.getProviderTransactionId())
+                .appId(t.getApplication() != null ? t.getApplication().getId() : null)
+                .appName(t.getApplication() != null ? t.getApplication().getName() : null)
+                .customerName(t.getCustomerName())
+                .customerEmail(t.getCustomerEmail())
+                .customerPhone(t.getCustomerPhone())
+                .payerAccount(t.getPayerAccount())
+                .payerName(t.getPayerName())
+                .payerEmail(t.getPayerEmail())
+                .successUrl(t.getSuccessUrl())
+                .cancelUrl(t.getCancelUrl())
+                .failureReason(t.getFailureReason())
+                .failureCode(t.getFailureCode())
+                .expiresAt(t.getExpiresAt())
+                .createdAt(t.getCreatedAt())
+                .updatedAt(t.getUpdatedAt())
+                .build();
+    }
+
+    @Override
+    public TxChartResponse getTransactionInChart(
+            UUID userId, TxChartInterval interval, TxChartCustomType customType,
+            Integer year, LocalDate fromDate, LocalDate toDate, ChartGroupBy groupBy
+    ) {
+        String currency = userBalanceRepository.findByUser_IdAndCurrency(userId, "XAF")
+                .map(UserBalance::getCurrency).orElse("XAF");
+
+        ChartBounds bounds = buildChartBounds(interval, customType, year, fromDate, toDate);
+        List<TransactionIn> transactions = transactionInRepository.findForChartByUser(userId, bounds.from, bounds.to);
+
+        Function<TransactionIn, String> keyFn = switch (groupBy) {
+            case STATUS      -> t -> t.getStatus().name();
+            case PROVIDER    -> t -> t.getPaymentProvider() != null ? t.getPaymentProvider().getName() : "Inconnu";
+            case APPLICATION -> t -> t.getApplication() != null ? t.getApplication().getName() : "Inconnu";
+        };
+
+        Set<String> groupKeys = buildInGroupKeys(groupBy, userId, transactions, keyFn);
+
+        List<ChartSeriesItem> series = new ArrayList<>();
+        for (String key : groupKeys) {
+            List<TransactionIn> groupTxs = transactions.stream()
+                    .filter(t -> keyFn.apply(t).equals(key)).toList();
+            List<Long> counts = new ArrayList<>();
+            List<Long> volumes = new ArrayList<>();
+            for (int i = 0; i < bounds.slotStarts.size(); i++) {
+                OffsetDateTime slotStart = bounds.slotStarts.get(i);
+                OffsetDateTime slotEnd = (i < bounds.slotStarts.size() - 1) ? bounds.slotStarts.get(i + 1) : bounds.to;
+                List<TransactionIn> slotTxs = groupTxs.stream()
+                        .filter(t -> !t.getCreatedAt().isBefore(slotStart) && t.getCreatedAt().isBefore(slotEnd))
+                        .toList();
+                counts.add((long) slotTxs.size());
+                volumes.add(slotTxs.stream().mapToLong(TransactionIn::getNetAmount).sum());
+            }
+            series.add(ChartSeriesItem.builder().key(key).counts(counts).volumes(volumes).build());
+        }
+
+        return TxChartResponse.builder()
+                .interval(interval).customType(customType).groupBy(groupBy)
+                .currency(currency).labels(bounds.labels).series(series).build();
+    }
+
+    private Set<String> buildInGroupKeys(ChartGroupBy groupBy, UUID userId,
+                                         List<TransactionIn> transactions,
+                                         Function<TransactionIn, String> keyFn) {
+        if (groupBy == ChartGroupBy.STATUS) {
+            return new LinkedHashSet<>(List.of("SUCCESS", "PENDING", "FAILED", "CANCELLED", "REFUNDED"));
+        }
+        if (groupBy == ChartGroupBy.PROVIDER) {
+            return paymentProviderRepository.findByIsActiveTrueOrderByNameAsc().stream()
+                    .map(PaymentProvider::getName)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+        List<String> historical = transactionInRepository.findDistinctApplicationNamesByUser(userId);
+        Set<String> keys = new LinkedHashSet<>(historical);
+        transactions.stream().map(keyFn).forEach(keys::add);
+        return keys;
+    }
+
+    // ── Transactions-out (nouveaux endpoints) ─────────────────────────────────
+
+    @Override
+    public TransactionStatsResponse getTransactionOutStats(UUID userId) {
+        long total     = transactionOutRepository.countByUser_Id(userId);
+        long success   = transactionOutRepository.countByUser_IdAndStatus(userId, TransactionStatus.SUCCESS);
+        long pending   = transactionOutRepository.countByUser_IdAndStatus(userId, TransactionStatus.PENDING);
+        long failed    = transactionOutRepository.countByUser_IdAndStatus(userId, TransactionStatus.FAILED);
+        long cancelled = transactionOutRepository.countByUser_IdAndStatus(userId, TransactionStatus.CANCELLED);
+        return TransactionStatsResponse.builder()
+                .total(total).successCount(success).pendingCount(pending)
+                .failedCount(failed).cancelledCount(cancelled).build();
+    }
+
+    @Override
+    public PaginationResponse<TransactionOutSummaryResponse> getTransactionsOut(
+            UUID userId, int page, int size,
+            TransactionStatus status, UUID appId,
+            OffsetDateTime from, OffsetDateTime to
+    ) {
+        Page<TransactionOut> result = transactionOutRepository.findAll(
+                TransactionOutSpec.forMerchant(userId, status, appId, from, to),
+                PageRequest.of(page, Math.min(size, 100), Sort.by(Sort.Direction.DESC, "createdAt"))
+        );
+        return PaginationResponse.<TransactionOutSummaryResponse>builder()
+                .content(result.getContent().stream().map(this::toOutSummary).toList())
+                .page(result.getNumber())
+                .size(result.getSize())
+                .totalElements(result.getTotalElements())
+                .totalPages(result.getTotalPages())
+                .last(result.isLast())
+                .build();
+    }
+
+    @Override
+    public TransactionOutDetailResponse getTransactionOutDetail(UUID userId, UUID id) {
+        TransactionOut t = transactionOutRepository.findByIdForMerchant(id, userId)
+                .orElseThrow(() -> new BusinessException(
+                        "Transaction introuvable", HttpStatus.NOT_FOUND, "TRANSACTION_NOT_FOUND"));
+        return TransactionOutDetailResponse.builder()
+                .id(t.getId())
+                .reference(t.getReference())
+                .merchantReference(t.getMerchantReference())
+                .amount(t.getAmount())
+                .feeAmount(t.getFeeAmount())
+                .netAmount(t.getNetAmount())
+                .currency(t.getCurrency())
+                .status(t.getStatus())
+                .description(t.getDescription())
+                .provider(t.getPaymentProvider() != null ? t.getPaymentProvider().getName() : null)
+                .providerTransactionId(t.getProviderTransactionId())
+                .appId(t.getApplication() != null ? t.getApplication().getId() : null)
+                .appName(t.getApplication() != null ? t.getApplication().getName() : null)
+                .beneficiaryName(t.getBeneficiaryName())
+                .beneficiaryEmail(t.getBeneficiaryEmail())
+                .beneficiaryAccount(t.getBeneficiaryAccount())
+                .failureReason(t.getFailureReason())
+                .failureCode(t.getFailureCode())
+                .createdAt(t.getCreatedAt())
+                .updatedAt(t.getUpdatedAt())
+                .build();
+    }
+
+    @Override
+    public TxChartResponse getTransactionOutChart(
+            UUID userId, TxChartInterval interval, TxChartCustomType customType,
+            Integer year, LocalDate fromDate, LocalDate toDate, ChartGroupBy groupBy
+    ) {
+        String currency = userBalanceRepository.findByUser_IdAndCurrency(userId, "XAF")
+                .map(UserBalance::getCurrency).orElse("XAF");
+
+        ChartBounds bounds = buildChartBounds(interval, customType, year, fromDate, toDate);
+        List<TransactionOut> transactions = transactionOutRepository.findForChartByUser(userId, bounds.from, bounds.to);
+
+        Function<TransactionOut, String> keyFn = switch (groupBy) {
+            case STATUS      -> t -> t.getStatus().name();
+            case PROVIDER    -> t -> t.getPaymentProvider() != null ? t.getPaymentProvider().getName() : "Inconnu";
+            case APPLICATION -> t -> t.getApplication() != null ? t.getApplication().getName() : "Direct";
+        };
+
+        Set<String> groupKeys = buildOutGroupKeys(groupBy, userId, transactions, keyFn);
+
+        List<ChartSeriesItem> series = new ArrayList<>();
+        for (String key : groupKeys) {
+            List<TransactionOut> groupTxs = transactions.stream()
+                    .filter(t -> keyFn.apply(t).equals(key)).toList();
+            List<Long> counts = new ArrayList<>();
+            List<Long> volumes = new ArrayList<>();
+            for (int i = 0; i < bounds.slotStarts.size(); i++) {
+                OffsetDateTime slotStart = bounds.slotStarts.get(i);
+                OffsetDateTime slotEnd = (i < bounds.slotStarts.size() - 1) ? bounds.slotStarts.get(i + 1) : bounds.to;
+                List<TransactionOut> slotTxs = groupTxs.stream()
+                        .filter(t -> !t.getCreatedAt().isBefore(slotStart) && t.getCreatedAt().isBefore(slotEnd))
+                        .toList();
+                counts.add((long) slotTxs.size());
+                volumes.add(slotTxs.stream().mapToLong(TransactionOut::getNetAmount).sum());
+            }
+            series.add(ChartSeriesItem.builder().key(key).counts(counts).volumes(volumes).build());
+        }
+
+        return TxChartResponse.builder()
+                .interval(interval).customType(customType).groupBy(groupBy)
+                .currency(currency).labels(bounds.labels).series(series).build();
+    }
+
+    private Set<String> buildOutGroupKeys(ChartGroupBy groupBy, UUID userId,
+                                          List<TransactionOut> transactions,
+                                          Function<TransactionOut, String> keyFn) {
+        if (groupBy == ChartGroupBy.STATUS) {
+            return new LinkedHashSet<>(List.of("SUCCESS", "PENDING", "FAILED", "CANCELLED", "REFUNDED"));
+        }
+        if (groupBy == ChartGroupBy.PROVIDER) {
+            return paymentProviderRepository.findByIsActiveTrueOrderByNameAsc().stream()
+                    .map(PaymentProvider::getName)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+        List<String> historical = transactionOutRepository.findDistinctApplicationNamesByUser(userId);
+        Set<String> keys = new LinkedHashSet<>(historical);
+        transactions.stream().map(keyFn).forEach(keys::add);
+        return keys;
+    }
+
+    private TransactionOutSummaryResponse toOutSummary(TransactionOut t) {
+        return TransactionOutSummaryResponse.builder()
+                .id(t.getId())
+                .reference(t.getReference())
+                .merchantReference(t.getMerchantReference())
+                .amount(t.getAmount())
+                .feeAmount(t.getFeeAmount())
+                .netAmount(t.getNetAmount())
+                .currency(t.getCurrency())
+                .status(t.getStatus())
+                .description(t.getDescription())
+                .provider(t.getPaymentProvider() != null ? t.getPaymentProvider().getName() : null)
+                .beneficiaryName(t.getBeneficiaryName())
+                .beneficiaryAccount(t.getBeneficiaryAccount())
+                .appName(t.getApplication() != null ? t.getApplication().getName() : null)
+                .createdAt(t.getCreatedAt())
+                .updatedAt(t.getUpdatedAt())
+                .build();
+    }
+
+    // ── Chart bounds helper ───────────────────────────────────────────────────
+
+    private record ChartBounds(
+            OffsetDateTime from, OffsetDateTime to,
+            List<String> labels, List<OffsetDateTime> slotStarts
+    ) {}
+
+    private ChartBounds buildChartBounds(TxChartInterval interval, TxChartCustomType customType,
+                                         Integer year, LocalDate fromDate, LocalDate toDate) {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        List<String> labels = new ArrayList<>();
+        List<OffsetDateTime> slotStarts = new ArrayList<>();
+        OffsetDateTime from;
+        OffsetDateTime to;
+
+        switch (interval) {
+            case TODAY -> {
+                from = today.atStartOfDay().atOffset(ZoneOffset.UTC);
+                to = from.plusDays(1);
+                for (int h = 0; h < 24; h++) {
+                    slotStarts.add(from.withHour(h));
+                    labels.add(String.format("%02d:00", h));
+                }
+            }
+            case THIS_WEEK -> {
+                LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                from = monday.atStartOfDay().atOffset(ZoneOffset.UTC);
+                to = from.plusDays(7);
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("EEE dd MMM", Locale.FRENCH);
+                for (int d = 0; d < 7; d++) {
+                    OffsetDateTime slot = from.plusDays(d);
+                    slotStarts.add(slot);
+                    labels.add(slot.format(fmt));
+                }
+            }
+            case THIS_MONTH -> {
+                LocalDate first = today.withDayOfMonth(1);
+                from = first.atStartOfDay().atOffset(ZoneOffset.UTC);
+                int days = today.lengthOfMonth();
+                to = from.plusDays(days);
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM", Locale.FRENCH);
+                for (int d = 0; d < days; d++) {
+                    OffsetDateTime slot = from.plusDays(d);
+                    slotStarts.add(slot);
+                    labels.add(slot.format(fmt));
+                }
+            }
+            case CUSTOM -> {
+                if (customType == null) {
+                    throw new BusinessException(
+                            "customType requis pour l'intervalle CUSTOM", HttpStatus.BAD_REQUEST, "MISSING_CUSTOM_TYPE");
+                }
+                if (customType == TxChartCustomType.YEAR) {
+                    if (year == null) {
+                        throw new BusinessException(
+                                "Le paramètre year est requis pour customType=YEAR", HttpStatus.BAD_REQUEST, "MISSING_YEAR");
+                    }
+                    from = LocalDate.of(year, 1, 1).atStartOfDay().atOffset(ZoneOffset.UTC);
+                    to = LocalDate.of(year + 1, 1, 1).atStartOfDay().atOffset(ZoneOffset.UTC);
+                    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM yyyy", Locale.FRENCH);
+                    for (int m = 1; m <= 12; m++) {
+                        OffsetDateTime slot = LocalDate.of(year, m, 1).atStartOfDay().atOffset(ZoneOffset.UTC);
+                        slotStarts.add(slot);
+                        labels.add(slot.format(fmt));
+                    }
+                } else {
+                    if (fromDate == null || toDate == null) {
+                        throw new BusinessException(
+                                "Les paramètres from et to sont requis pour customType=DAYS",
+                                HttpStatus.BAD_REQUEST, "MISSING_DATE_RANGE");
+                    }
+                    if (fromDate.isAfter(toDate)) {
+                        throw new BusinessException(
+                                "from doit être antérieur ou égal à to", HttpStatus.BAD_REQUEST, "INVALID_DATE_RANGE");
+                    }
+                    long daysBetween = ChronoUnit.DAYS.between(fromDate, toDate);
+                    if (daysBetween > 30) {
+                        throw new BusinessException(
+                                "La plage maximale pour DAYS est de 30 jours", HttpStatus.BAD_REQUEST, "DATE_RANGE_TOO_LARGE");
+                    }
+                    from = fromDate.atStartOfDay().atOffset(ZoneOffset.UTC);
+                    to = toDate.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+                    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM", Locale.FRENCH);
+                    for (long d = 0; d <= daysBetween; d++) {
+                        OffsetDateTime slot = from.plusDays(d);
+                        slotStarts.add(slot);
+                        labels.add(slot.format(fmt));
+                    }
+                }
+            }
+            default -> throw new BusinessException("Intervalle non supporté", HttpStatus.BAD_REQUEST, "INVALID_INTERVAL");
+        }
+
+        return new ChartBounds(from, to, labels, slotStarts);
     }
 }
