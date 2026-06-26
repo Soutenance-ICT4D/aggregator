@@ -5,9 +5,11 @@ import com.sharepay.aggregator.shared.security.apikey.ApiKeyAuthenticationFilter
 import com.sharepay.aggregator.shared.security.jwt.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -18,6 +20,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 
 @Configuration
@@ -29,6 +33,9 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ApiKeyAuthenticationFilter apiKeyAuthenticationFilter;
     private final RateLimitingFilter rateLimitingFilter;
+
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -46,6 +53,8 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // ── Preflight CORS : doit être autorisé avant toute autre règle ──
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // ── Assets statiques (logo, favicons, images providers) ──
                         .requestMatchers("/logo_sharepay_svg.svg", "/favicon.ico", "/assets/**", "/swagger-custom.js",
                                 "/*.png", "/*.jpg", "/*.jpeg", "/*.svg", "/*.webp").permitAll()
@@ -107,14 +116,19 @@ public class SecurityConfig {
 
     /**
      * Configuration CORS globale.
-     * Permet les requêtes cross-origin depuis n'importe quelle origine.
+     * Origines explicitement whitelistées via app.cors.allowed-origins (CORS_ALLOWED_ORIGINS).
      */
     @Bean
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
+
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-        configuration.setAllowedOriginPatterns(java.util.List.of("*"));
-        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(java.util.List.of("*"));
+        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-API-KEY", "Accept"));
         configuration.setAllowCredentials(true);
 
         org.springframework.web.cors.UrlBasedCorsConfigurationSource source =

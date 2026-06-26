@@ -112,6 +112,8 @@ app:
   website-url:       ${SHAREPAY_URL:https://sharepay.cm}
   mail:
     from: ${MAIL_FROM:${MAIL_USERNAME}}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
 
 # Configuration Logging commune (surchargée par profil)
 logging:
