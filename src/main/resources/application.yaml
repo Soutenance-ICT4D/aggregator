@@ -1,6 +1,7 @@
 # Configuration Server
 server:
   port: ${SPRING_SERVER_PORT:3001}
+  forward-headers-strategy: framework
 
 spring:
   application:
