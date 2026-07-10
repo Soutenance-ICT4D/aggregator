@@ -19,7 +19,6 @@ import com.sharepay.aggregator.shared.exception.BusinessException;
 import com.sharepay.aggregator.shared.gateway.PaymentGatewayRegistry;
 import com.sharepay.aggregator.shared.gateway.dto.GatewayPayOutRequest;
 import com.sharepay.aggregator.shared.gateway.dto.GatewayPayOutResponse;
-import com.sharepay.aggregator.modules.payment.service.FeeCalculatorService;
 import com.sharepay.aggregator.modules.webhook.service.WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +43,6 @@ public class PayOutServiceImpl implements PayOutService {
     private final UserRepository userRepository;
     private final ApiKeyRepository apiKeyRepository;
     private final PaymentGatewayRegistry gatewayRegistry;
-    private final FeeCalculatorService feeCalculatorService;
     private final WebhookService webhookService;
 
     private final SecureRandom secureRandom = new SecureRandom();
@@ -71,7 +69,7 @@ public class PayOutServiceImpl implements PayOutService {
         return doTransfer(user, null, request);
     }
 
-    /** Retrait automatique : frais déduits du gross (solde à vider), bénéficiaire reçoit gross - fee. */
+    /** Retrait automatique : pas de frais, le solde est vidé et le bénéficiaire reçoit tout le gross. */
     @Override
     @Transactional
     public TransferResponse createAutoWithdrawal(UUID userId, String providerCode,
@@ -79,10 +77,10 @@ public class PayOutServiceImpl implements PayOutService {
                                                   long gross, String currency, String description) {
         PaymentProvider provider = resolveProvider(providerCode);
 
-        long amount = feeCalculatorService.computeNetFromGross(provider, gross);
+        long amount = gross;
         if (amount <= 0) {
             throw new BusinessException(
-                    "Montant trop faible après déduction des frais de retrait.",
+                    "Montant de retrait invalide.",
                     HttpStatus.BAD_REQUEST, "AMOUNT_TOO_SMALL");
         }
         validateAmount(provider, amount, currency);
@@ -106,8 +104,9 @@ public class PayOutServiceImpl implements PayOutService {
 
         validateAmount(provider, request.getAmount(), request.getCurrency());
 
-        long feeAmount  = feeCalculatorService.computeFee(provider, request.getAmount());
-        long totalDebit = request.getAmount() + feeAmount;
+        // Pas de frais sur les retraits : le bénéficiaire reçoit exactement le montant demandé.
+        long feeAmount  = 0L;
+        long totalDebit = request.getAmount();
 
         int updated = userBalanceRepository.moveAvailableToPending(
                 user.getId(), request.getCurrency(), totalDebit);
