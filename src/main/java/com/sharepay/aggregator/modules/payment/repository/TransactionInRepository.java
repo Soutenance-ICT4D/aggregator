@@ -26,7 +26,8 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
 
     Optional<TransactionIn> findBySessionToken(String sessionToken);
 
-    Optional<TransactionIn> findByIdempotencyKey(String idempotencyKey);
+    /** Idempotence scopée par application : une clé n'est unique qu'au sein de l'application émettrice. */
+    Optional<TransactionIn> findByApplication_IdAndIdempotencyKey(UUID applicationId, String idempotencyKey);
 
     Optional<TransactionIn> findByProviderTransactionId(String providerTransactionId);
 
