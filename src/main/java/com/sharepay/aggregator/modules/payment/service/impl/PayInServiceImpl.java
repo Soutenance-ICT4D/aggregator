@@ -106,7 +106,8 @@ public class PayInServiceImpl implements PayInService {
         Application application = resolveApplication(apiKeyId);
 
         if (request.getIdempotencyKey() != null) {
-            Optional<TransactionIn> existing = transactionInRepository.findByIdempotencyKey(request.getIdempotencyKey());
+            Optional<TransactionIn> existing = transactionInRepository
+                    .findByApplication_IdAndIdempotencyKey(application.getId(), request.getIdempotencyKey());
             if (existing.isPresent()) {
                 TransactionIn tx = existing.get();
                 log.info("Charge idempotente retournée : {} (clé: {})", tx.getReference(), request.getIdempotencyKey());

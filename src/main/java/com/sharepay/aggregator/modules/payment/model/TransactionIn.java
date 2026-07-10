@@ -13,7 +13,9 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "transactions_in")
+@Table(name = "transactions_in", uniqueConstraints = @UniqueConstraint(
+        name = "uq_transactions_in_application_idempotency",
+        columnNames = {"application_id", "idempotency_key"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -115,7 +117,7 @@ public class TransactionIn {
     @Column(name = "failure_code", length = 50)
     private String failureCode;
 
-    @Column(name = "idempotency_key", unique = true, length = 100)
+    @Column(name = "idempotency_key", length = 100)
     private String idempotencyKey;
 
     @Version
