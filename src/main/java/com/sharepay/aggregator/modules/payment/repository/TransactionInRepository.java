@@ -205,6 +205,16 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
             """)
     Page<TransactionIn> findAllByMerchantForAdmin(@Param("userId") UUID userId, Pageable pageable);
 
+    /** Intégralité des pay-in d'un marchand (vue admin 360, non paginée) avec provider & application. */
+    @Query("""
+            SELECT t FROM TransactionIn t
+            LEFT JOIN FETCH t.paymentProvider
+            JOIN FETCH t.application a
+            WHERE a.user.id = :userId
+            ORDER BY t.createdAt DESC
+            """)
+    List<TransactionIn> findAllByMerchant(@Param("userId") UUID userId);
+
     /** Noms distincts des applications non supprimées de ce marchand. */
     @Query("""
             SELECT DISTINCT a.name
