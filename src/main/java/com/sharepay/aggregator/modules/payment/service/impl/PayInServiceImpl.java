@@ -124,7 +124,7 @@ public class PayInServiceImpl implements PayInService {
 
         TransactionIn tx = TransactionIn.builder()
                 .reference(reference)
-                .type(TransactionInType.CHARGE)
+                .type(TransactionInType.CHARGE) 
                 .application(application)
                 .paymentProvider(provider)
                 .currency(request.getCurrency())

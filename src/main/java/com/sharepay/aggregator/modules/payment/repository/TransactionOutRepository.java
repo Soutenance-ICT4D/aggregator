@@ -51,6 +51,16 @@ public interface TransactionOutRepository extends JpaRepository<TransactionOut, 
             """)
     List<TransactionOut> findStuckPendingWithDetails(@Param("maxAge") OffsetDateTime maxAge);
 
+    /** Intégralité des pay-out d'un marchand (vue admin 360, non paginée) avec provider & application. */
+    @Query("""
+            SELECT t FROM TransactionOut t
+            LEFT JOIN FETCH t.paymentProvider
+            LEFT JOIN FETCH t.application
+            WHERE t.user.id = :userId
+            ORDER BY t.createdAt DESC
+            """)
+    List<TransactionOut> findAllByUser(@Param("userId") UUID userId);
+
     /** Nombre total de pay-out du marchand. */
     long countByUser_Id(UUID userId);
 

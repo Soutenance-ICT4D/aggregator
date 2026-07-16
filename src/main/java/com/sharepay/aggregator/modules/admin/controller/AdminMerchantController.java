@@ -2,6 +2,7 @@ package com.sharepay.aggregator.modules.admin.controller;
 
 import com.sharepay.aggregator.modules.admin.dto.request.UpdateMerchantKycRequest;
 import com.sharepay.aggregator.modules.admin.dto.request.UpdateStatusRequest;
+import com.sharepay.aggregator.modules.admin.dto.response.Merchant360Response;
 import com.sharepay.aggregator.modules.admin.dto.response.MerchantSummaryResponse;
 import com.sharepay.aggregator.modules.admin.service.AdminMerchantService;
 import com.sharepay.aggregator.shared.constant.AccountStatus;
@@ -39,6 +40,13 @@ public class AdminMerchantController {
     @Operation(summary = "Détail d'un marchand")
     public ApiResponse<MerchantSummaryResponse> get(@PathVariable UUID id) {
         return ApiResponse.success(adminMerchantService.getMerchant(id));
+    }
+
+    @GetMapping("/{id}/overview")
+    @Operation(summary = "Vue 360 d'un marchand",
+            description = "Infos, soldes, statistiques par statut et tous les mouvements (pay-in & pay-out).")
+    public ApiResponse<Merchant360Response> overview(@PathVariable UUID id) {
+        return ApiResponse.success(adminMerchantService.getOverview(id));
     }
 
     @PatchMapping("/{id}/status")
