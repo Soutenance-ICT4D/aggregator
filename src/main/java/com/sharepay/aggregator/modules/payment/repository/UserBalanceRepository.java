@@ -18,6 +18,14 @@ public interface UserBalanceRepository extends JpaRepository<UserBalance, UUID> 
 
     List<UserBalance> findByUser_IdOrderByCurrencyAsc(UUID userId);
 
+    /** Somme des soldes disponibles de tous les marchands (float plateforme). */
+    @Query("SELECT COALESCE(SUM(b.availableAmount), 0) FROM UserBalance b")
+    long sumAllAvailable();
+
+    /** Somme des soldes en attente de tous les marchands. */
+    @Query("SELECT COALESCE(SUM(b.pendingAmount), 0) FROM UserBalance b")
+    long sumAllPending();
+
     /** Incrémente le montant disponible de manière atomique (utilisé lors d'un paiement entrant réussi). */
     @Modifying
     @Query("""
