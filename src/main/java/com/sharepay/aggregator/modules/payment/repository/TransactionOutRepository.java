@@ -61,6 +61,10 @@ public interface TransactionOutRepository extends JpaRepository<TransactionOut, 
             """)
     List<TransactionOut> findAllByUser(@Param("userId") UUID userId);
 
+    /** Somme des montants pay-out pour un statut donné (vue plateforme admin). */
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM TransactionOut t WHERE t.status = :status")
+    long sumAmountByStatus(@Param("status") TransactionStatus status);
+
     /** Nombre total de pay-out du marchand. */
     long countByUser_Id(UUID userId);
 

@@ -254,6 +254,13 @@ public interface TransactionInRepository extends JpaRepository<TransactionIn, UU
             Pageable pageable
     );
 
+    /** Somme des montants pay-in pour un statut donné (vue plateforme admin). */
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM TransactionIn t WHERE t.status = :status")
+    long sumAmountByStatus(@Param("status") TransactionStatus status);
+
+    /** Nombre total de pay-in pour un statut donné (vue plateforme admin). */
+    long countByStatus(TransactionStatus status);
+
     /** Nombre total de pay-in du marchand (apps non supprimées). */
     long countByApplication_User_IdAndApplication_StatusNot(UUID userId, AppStatus appStatus);
 

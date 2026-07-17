@@ -16,6 +16,7 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
+    long countByRole(Role role);
     long countByRoleAndStatus(Role role, AccountStatus status);
 
     Page<User> findAllByRoleOrderByCreatedAtDesc(Role role, Pageable pageable);
